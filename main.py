@@ -1,11 +1,11 @@
 """
-Simple 2D game starter using Pygame.
+Simple 2D game starter using Pygame with a scrolling world.
 
 How to run:
   1) Install dependencies: pip install pygame
   2) Run the game: python main.py
 
-This opens an empty window with a dark background. Close the window or press Esc to quit.
+Move with arrow keys or WASD. The camera follows the character; press Esc to quit.
 """
 
 import sys
@@ -16,7 +16,7 @@ except ImportError:
     print("This starter requires pygame. Install it with: pip install pygame")
     sys.exit(1)
 
-# Window configuration
+# Window (screen) configuration
 WIDTH, HEIGHT = 800, 600
 TITLE = "Kids Rainbow - Starter (Pygame)"
 BG_COLOR = (30, 30, 30)  # dark background
@@ -26,14 +26,28 @@ FPS = 60
 GRID_SIZE = 40
 GRID_COLOR = (80, 80, 80)  # gray lines
 
+# World configuration (bigger than the screen so we can scroll)
+WORLD_COLS = 50
+WORLD_ROWS = 40
+WORLD_WIDTH = WORLD_COLS * GRID_SIZE
+WORLD_HEIGHT = WORLD_ROWS * GRID_SIZE
 
-def draw_grid(surface, cell_size: int = GRID_SIZE, color: tuple = GRID_COLOR) -> None:
-    # Vertical lines
-    for x in range(0, WIDTH, cell_size):
+
+def draw_grid(surface, cam_x: int, cam_y: int, cell_size: int = GRID_SIZE, color: tuple = GRID_COLOR) -> None:
+    """Draw a grid in world space, offset by the camera so it scrolls."""
+    # First visible vertical grid line on screen based on camera
+    start_x = -(cam_x % cell_size)
+    x = start_x
+    while x <= WIDTH:
         pygame.draw.line(surface, color, (x, 0), (x, HEIGHT))
-    # Horizontal lines
-    for y in range(0, HEIGHT, cell_size):
+        x += cell_size
+
+    # First visible horizontal grid line on screen based on camera
+    start_y = -(cam_y % cell_size)
+    y = start_y
+    while y <= HEIGHT:
         pygame.draw.line(surface, color, (0, y), (WIDTH, y))
+        y += cell_size
 
 
 def main() -> None:
@@ -50,19 +64,19 @@ def main() -> None:
     PLAYER_COLOR = (220, 200, 60)  # yellowish block
     PLAYER_SPEED = 250  # pixels per second
 
-    # Create the player rectangle centered in the window
+    # Create the player in the center of the WORLD (world coordinates)
     player_rect = pygame.Rect(
-        (WIDTH - PLAYER_SIZE) // 2,
-        (HEIGHT - PLAYER_SIZE) // 2,
+        (WORLD_WIDTH - PLAYER_SIZE) // 2,
+        (WORLD_HEIGHT - PLAYER_SIZE) // 2,
         PLAYER_SIZE,
         PLAYER_SIZE,
     )
 
-    # Snap initial position to the grid
+    # Snap initial position to the grid (world coordinates)
     player_rect.x = (player_rect.x // GRID_SIZE) * GRID_SIZE
     player_rect.y = (player_rect.y // GRID_SIZE) * GRID_SIZE
 
-    # Use float positions for smooth interpolation
+    # Use float positions for smooth interpolation (world coordinates)
     current_x = float(player_rect.x)
     current_y = float(player_rect.y)
     target_x = current_x
@@ -102,15 +116,15 @@ def main() -> None:
                     dir_y = 1
 
             if dir_x != 0 or dir_y != 0:
-                # Compute potential target while respecting bounds
+                # Compute potential target while respecting WORLD bounds
                 proposed_x = current_x + dir_x * GRID_SIZE
                 proposed_y = current_y + dir_y * GRID_SIZE
 
-                # Ensure target stays within bounds (player size is GRID_SIZE)
+                # Ensure target stays within world bounds (player size is GRID_SIZE)
                 min_x = 0
                 min_y = 0
-                max_x = WIDTH - PLAYER_SIZE
-                max_y = HEIGHT - PLAYER_SIZE
+                max_x = WORLD_WIDTH - PLAYER_SIZE
+                max_y = WORLD_HEIGHT - PLAYER_SIZE
 
                 if min_x <= proposed_x <= max_x and min_y <= proposed_y <= max_y:
                     target_x = proposed_x
@@ -141,14 +155,23 @@ def main() -> None:
                 current_y = target_y
                 moving = False
 
-        # Update rect from float position for rendering
+        # Update rect from float position for rendering (world coordinates)
         player_rect.x = int(round(current_x))
         player_rect.y = int(round(current_y))
 
+        # Camera: center on player, then clamp to world bounds so we don't show beyond edges
+        cam_x = player_rect.centerx - WIDTH // 2
+        cam_y = player_rect.centery - HEIGHT // 2
+        cam_x = max(0, min(cam_x, max(0, WORLD_WIDTH - WIDTH)))
+        cam_y = max(0, min(cam_y, max(0, WORLD_HEIGHT - HEIGHT)))
+
         # Draw
         screen.fill(BG_COLOR)
-        draw_grid(screen)
-        pygame.draw.rect(screen, PLAYER_COLOR, player_rect)
+        draw_grid(screen, cam_x, cam_y)
+
+        # Draw the player relative to the camera (screen-space rect)
+        screen_player_rect = player_rect.move(-cam_x, -cam_y)
+        pygame.draw.rect(screen, PLAYER_COLOR, screen_player_rect)
 
         # Present the frame
         pygame.display.flip()
