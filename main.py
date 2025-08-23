@@ -17,13 +17,13 @@ except ImportError:
     sys.exit(1)
 
 # Window (screen) configuration
-WIDTH, HEIGHT = 800, 600
+WIDTH, HEIGHT = 1600, 1200
 TITLE = "Kids Rainbow - Starter (Pygame)"
 BG_COLOR = (30, 30, 30)  # dark background
 FPS = 60
 
 # Grid configuration
-GRID_SIZE = 40
+GRID_SIZE = 80
 GRID_COLOR = (80, 80, 80)  # gray lines
 
 # World configuration (bigger than the screen so we can scroll)
@@ -62,7 +62,7 @@ def main() -> None:
     # Player configuration
     PLAYER_SIZE = GRID_SIZE
     PLAYER_COLOR = (220, 200, 60)  # yellowish block
-    PLAYER_SPEED = 250  # pixels per second
+    PLAYER_SPEED = 375  # pixels per second (50% faster)
 
     # Create the player in the center of the WORLD (world coordinates)
     player_rect = pygame.Rect(
@@ -84,6 +84,10 @@ def main() -> None:
     moving = False  # whether we're currently animating toward a target cell
 
     running = True
+
+    # Initialize camera to center on player at start, then maintain with dead-zone scrolling
+    cam_x = max(0, min(player_rect.centerx - WIDTH // 2, max(0, WORLD_WIDTH - WIDTH)))
+    cam_y = max(0, min(player_rect.centery - HEIGHT // 2, max(0, WORLD_HEIGHT - HEIGHT)))
 
     while running:
         # Time since last frame (in seconds) for framerate-independent movement
@@ -159,9 +163,31 @@ def main() -> None:
         player_rect.x = int(round(current_x))
         player_rect.y = int(round(current_y))
 
-        # Camera: center on player, then clamp to world bounds so we don't show beyond edges
-        cam_x = player_rect.centerx - WIDTH // 2
-        cam_y = player_rect.centery - HEIGHT // 2
+        # Camera with central dead zone (20% of screen). Only scroll when player exits this zone.
+        # Compute player's position on screen using current camera
+        screen_cx = player_rect.centerx - cam_x
+        screen_cy = player_rect.centery - cam_y
+
+        # Dead zone dimensions centered on the screen
+        dz_w = WIDTH * 0.2
+        dz_h = HEIGHT * 0.2
+        dz_left = (WIDTH - dz_w) / 2.0
+        dz_right = dz_left + dz_w
+        dz_top = (HEIGHT - dz_h) / 2.0
+        dz_bottom = dz_top + dz_h
+
+        # Adjust camera only if player is outside the dead zone
+        if screen_cx < dz_left:
+            cam_x -= int(dz_left - screen_cx)
+        elif screen_cx > dz_right:
+            cam_x += int(screen_cx - dz_right)
+
+        if screen_cy < dz_top:
+            cam_y -= int(dz_top - screen_cy)
+        elif screen_cy > dz_bottom:
+            cam_y += int(screen_cy - dz_bottom)
+
+        # Clamp camera to world bounds
         cam_x = max(0, min(cam_x, max(0, WORLD_WIDTH - WIDTH)))
         cam_y = max(0, min(cam_y, max(0, WORLD_HEIGHT - HEIGHT)))
 
