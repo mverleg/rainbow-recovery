@@ -42,7 +42,7 @@ scene('menu', () => {
   const spriteMax = 150;
   // Cell padding should be large enough to accommodate enlarged selection (1.2x)
   const paddingX = spriteMax + 100;
-  const paddingY = spriteMax + 100;
+  const paddingY = spriteMax + 200; // increased vertical spacing between player and monsters
   const startX = width() / 2 - ((cols - 1) * paddingX) / 2;
   const startY = height() / 2 - paddingY / 2;
 
@@ -63,15 +63,7 @@ scene('menu', () => {
       { monsterKey: m.key, monsterLabel: m.label, baseScale: 1 },
     ]);
 
-    // Compute a uniform base scale so the sprite fits within spriteMax box
-    const w = item.width;
-    const h = item.height;
-    const sRaw = Math.min(spriteMax / Math.max(1, w), spriteMax / Math.max(1, h));
-    // Slightly increase red monster size for better prominence
-    const s = m.key === 'red' ? sRaw * 1.1 : sRaw;
-    item.baseScale = s;
-    item.scale = vec2(s);
-
+    // Defer sizing until sprite dimensions are available to avoid partial texture uploads
     // Label under sprite, positioned based on spriteMax to keep spacing consistent
     const label = add([
       text(m.label, { size: 18 }),
@@ -86,13 +78,23 @@ scene('menu', () => {
       go('level', m.key);
     });
 
-    // Hover visual: slight scale-up and full opacity when hovered
+    // Ensure base sizing happens once when sprite dimensions are known
     item.onUpdate(() => {
+      if (!item.__sized && item.width > 0 && item.height > 0) {
+        const w = item.width;
+        const h = item.height;
+        const sRaw = Math.min(spriteMax / w, spriteMax / h);
+        const s = m.key === 'red' ? sRaw * 1.1 : sRaw;
+        item.baseScale = s;
+        item.scale = vec2(s);
+        item.__sized = true;
+      }
+      // Hover visual: slight scale-up and full opacity when hovered
       const hovered = typeof item.isHovering === 'function' ? item.isHovering() : (typeof item.isHovered === 'function' ? item.isHovered() : false);
       const isSelected = (i === selected);
       let mult = isSelected ? 1.2 : 1;
       if (hovered) mult = Math.max(mult, 1.1);
-      item.scale = vec2(item.baseScale * mult);
+      item.scale = vec2((item.baseScale || 1) * mult);
       item.opacity = (isSelected || hovered) ? 1 : 0.9;
     });
 
@@ -165,7 +167,7 @@ scene('menu', () => {
   function relayoutMenu() {
     // recompute layout metrics
     const paddingX = spriteMax + 100;
-    const paddingY = spriteMax + 100;
+    const paddingY = spriteMax + 200; // increased vertical spacing between player and monsters
     const startX = width() / 2 - ((cols - 1) * paddingX) / 2;
     const startY = height() / 2 - paddingY / 2;
 

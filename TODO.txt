@@ -1,7 +1,5 @@
 
-In the menu:
-Make the rainbow more gray-ish when not hovered
-Increase the space between player and monsters
+Increase the spacing between rainbow and char, and between char and monsters.
+Decrease the spacing between first and second row of monsters.
+When pressing enter in the menu, go to the level of the selected monster.
 
-In level red:
-Change the movement logic so that the character actually moves right when pressing right, etc

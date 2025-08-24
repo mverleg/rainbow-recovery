@@ -34,7 +34,7 @@ body { overflow: hidden; }
   border-style: solid;
   border-bottom: none;
   opacity: 0.55; /* vague by default */
-  filter: saturate(70%) brightness(0.95);
+  filter: grayscale(65%) saturate(45%) brightness(0.9);
   transition: opacity 200ms ease, filter 200ms ease, transform 200ms ease;
   pointer-events: auto; /* enable hover */
 }
