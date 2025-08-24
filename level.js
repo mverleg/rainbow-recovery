@@ -96,19 +96,19 @@ scene('level', (monsterKey) => {
     }
   }
 
-  // Dynamic obstacles: moving blocks in corridors
+  // Dynamic obstacles: moving blocks that bounce between walls and push the player
   const movers = [];
-  function addMover(cellX, cellY, axis, amplitudeCells, speed = 1, tint = [180, 80, 80]) {
+  function addMover(cellX, cellY, axis, initialDir = 1, speedCellsPerSec = 2, tint = [180, 80, 80]) {
     if (isSolidCell(cellX, cellY)) return;
-    const base = cellToWorld(cellX, cellY);
+    const posWorld = cellToWorld(cellX, cellY);
     const node = add([
       rect(GRID * 0.9, GRID * 0.9),
       anchor('center'),
-      pos(base),
+      pos(posWorld),
       color(tint[0], tint[1], tint[2]),
       z(2),
       area(),
-      { base: base.clone(), axis, amp: amplitudeCells * GRID, speed, phase: rand(0, Math.PI * 2) },
+      { axis, dir: initialDir, speed: speedCellsPerSec * GRID },
     ]);
     movers.push(node);
   }
@@ -116,22 +116,35 @@ scene('level', (monsterKey) => {
   // Place a few movers horizontally and vertically in safe corridors
   for (let y = 3; y < LEVEL_H - 3; y += 6) {
     for (let x = 5; x < LEVEL_W - 5; x += 16) {
-      if (!isSolidCell(x, y)) addMover(x, y, 'x', 3, 0.7);
+      if (!isSolidCell(x, y)) addMover(x, y, 'x', 1, 2.2);
     }
   }
   for (let x = 8; x < LEVEL_W - 8; x += 14) {
     for (let y = 4; y < LEVEL_H - 4; y += 10) {
-      if (!isSolidCell(x, y)) addMover(x, y, 'y', 2, 0.9, [80, 80, 180]);
+      if (!isSolidCell(x, y)) addMover(x, y, 'y', 1, 2.8, [80, 80, 180]);
     }
   }
 
   onUpdate(() => {
-    const t = time();
     for (const m of movers) {
-      const offset = Math.sin(t * m.speed + m.phase) * m.amp;
-      const p = m.base.clone();
-      if (m.axis === 'x') p.x += offset; else p.y += offset;
-      m.pos = p;
+      const prev = m.pos.clone();
+      const delta = vec2(0, 0);
+      if (m.axis === 'x') delta.x = m.dir * m.speed * dt(); else delta.y = m.dir * m.speed * dt();
+      let newPos = m.pos.add(delta);
+      // Predict next cell; if solid, bounce and recompute newPos
+      const ncell = worldToCell(newPos);
+      if (isSolidCell(ncell.x, ncell.y)) {
+        m.dir *= -1;
+        if (m.axis === 'x') delta.x = m.dir * m.speed * dt(); else delta.y = m.dir * m.speed * dt();
+        newPos = m.pos.add(delta);
+      }
+      m.pos = newPos;
+      // Push player out of the way if overlapping: move player by same delta if intersecting
+      const playerDist = player.pos.sub(m.pos).len();
+      const overlapRange = GRID * 0.9; // approximate square overlap radius
+      if (playerDist < overlapRange) {
+        player.pos = player.pos.add(delta);
+      }
     }
   });
 
@@ -371,15 +384,15 @@ scene('level', (monsterKey) => {
 
   onUpdate(applyCamera);
 
-  // Red monster near the end (bottom-right), with occasional corner patrol
-  const redSpawnCell = findEmptyNear(LEVEL_W - 3, LEVEL_H - 3);
+  // Red monster at bottom-left, patrols within 15 cells, shoots red balls when player in range
+  const redSpawnCell = findEmptyNear(2, LEVEL_H - 3);
   const redMonster = add([
     sprite('red'),
     anchor('center'),
     pos(cellToWorld(redSpawnCell.x, redSpawnCell.y)),
     z(5),
     area(),
-    { baseScale: 1, patrolIndex: 0, nextSwitch: time() + rand(1, 3), patrolPaused: false },
+    { baseScale: 1, home: cellToWorld(redSpawnCell.x, redSpawnCell.y), nextMovement: time() + rand(2, 4), nextShot: time() + rand(0.5, 1) },
   ]);
   // Size monster once
   redMonster.onUpdate(() => {
@@ -390,47 +403,123 @@ scene('level', (monsterKey) => {
       redMonster.__sized = true;
     }
   });
-  // Simple square patrol clockwise around its spawn corner occasionally
-  const patrolDirs = ['left', 'up', 'right', 'down'];
-  const patrolVecs = {
-    left: vec2(-1, 0),
-    right: vec2(1, 0),
-    up: vec2(0, -1),
-    down: vec2(0, 1),
-  };
-  let redTarget = redMonster.pos.clone();
-  const RED_SPEED = GRID * 3.5;
+
+  // List to track active red balls
+  const redBalls = [];
+
+  const RED_SPEED = GRID * 2.5;
+  const SHOOT_RANGE = 20; // cells
+  const PATROL_RADIUS = 15; // cells
+
   onUpdate(() => {
-    // Occasionally decide to start or pause patrol
-    if (time() >= redMonster.nextSwitch) {
-      redMonster.patrolPaused = !redMonster.patrolPaused;
-      redMonster.nextSwitch = time() + (redMonster.patrolPaused ? rand(1.2, 2.2) : rand(2.5, 4.5));
-      if (!redMonster.patrolPaused) {
-        // choose next segment one cell length
-        for (let i = 0; i < 4; i++) {
-          const dir = patrolDirs[(redMonster.patrolIndex + i) % 4];
-          const v = patrolVecs[dir];
-          const curCell = worldToCell(redMonster.pos);
-          const ncell = vec2(curCell.x + v.x, curCell.y + v.y);
-          if (!isSolidCell(ncell.x, ncell.y)) {
-            redMonster.patrolIndex = (redMonster.patrolIndex + i + 1) % 4;
-            redTarget = cellToWorld(ncell.x, ncell.y);
-            break;
+    // Movement: occasionally move several steps in a random direction, constrained to 15 cells from home
+    if (time() >= redMonster.nextMovement) {
+      redMonster.nextMovement = time() + rand(2.5, 4.5); // next movement in 2.5-4.5 seconds
+      // Try to move 2-4 steps in a random cardinal direction, constrained by patrol radius
+      const steps = Math.floor(rand(2, 5));
+      const dirs = ['left', 'right', 'up', 'down'];
+      const dir = dirs[Math.floor(rand(0, 4))];
+      let dx = 0, dy = 0;
+      switch (dir) {
+        case 'left': dx = -steps; break;
+        case 'right': dx = steps; break;
+        case 'up': dy = -steps; break;
+        case 'down': dy = steps; break;
+      }
+      const currentCell = worldToCell(redMonster.pos);
+      const homeCell = worldToCell(redMonster.home);
+      const targetCell = vec2(currentCell.x + dx, currentCell.y + dy);
+      // Check if target is within patrol radius and not solid
+      const distFromHome = vec2(targetCell.x - homeCell.x, targetCell.y - homeCell.y).len();
+      if (distFromHome <= PATROL_RADIUS && !isSolidCell(targetCell.x, targetCell.y)) {
+        // Move to target cell
+        const targetWorld = cellToWorld(targetCell.x, targetCell.y);
+        const delta = targetWorld.sub(redMonster.pos);
+        const dist = delta.len();
+        if (dist > 0.01) {
+          const stepPerFrame = RED_SPEED * dt();
+          if (stepPerFrame >= dist) {
+            redMonster.pos = targetWorld;
+          } else {
+            redMonster.pos = redMonster.pos.add(delta.unit().scale(stepPerFrame));
           }
         }
       }
     }
-    if (!redMonster.patrolPaused) {
-      const delta = redTarget.sub(redMonster.pos);
-      const dist = delta.len();
-      if (dist > 0.001) {
-        const step = RED_SPEED * dt();
-        if (step >= dist) {
-          redMonster.pos = redTarget;
+
+    // Shooting: fire red balls at player if within range
+    if (time() >= redMonster.nextShot) {
+      redMonster.nextShot = time() + rand(1.5, 2.5); // next shot attempt in 1.5-2.5 seconds
+      const playerCell = worldToCell(player.pos);
+      const monsterCell = worldToCell(redMonster.pos);
+      const dist = vec2(playerCell.x - monsterCell.x, playerCell.y - monsterCell.y).len();
+      if (dist <= SHOOT_RANGE) {
+        // Choose direction closest to player (axis-aligned only)
+        const dx = playerCell.x - monsterCell.x;
+        const dy = playerCell.y - monsterCell.y;
+        let shootDir = 'right'; // default
+        if (Math.abs(dx) > Math.abs(dy)) {
+          shootDir = dx > 0 ? 'right' : 'left';
         } else {
-          redMonster.pos = redMonster.pos.add(delta.unit().scale(step));
+          shootDir = dy > 0 ? 'down' : 'up';
         }
+        // Create red ball projectile
+        const ballVel = vec2(0, 0);
+        switch (shootDir) {
+          case 'left': ballVel.x = -GRID * 8; break;
+          case 'right': ballVel.x = GRID * 8; break;
+          case 'up': ballVel.y = -GRID * 8; break;
+          case 'down': ballVel.y = GRID * 8; break;
+        }
+        const ball = add([
+          circle(GRID * 0.15),
+          anchor('center'),
+          pos(redMonster.pos),
+          color(220, 50, 50),
+          z(3),
+          area(),
+          { velocity: ballVel },
+        ]);
+        redBalls.push(ball);
       }
+    }
+
+      // Update red balls: move them and destroy on wall collision
+    for (let i = redBalls.length - 1; i >= 0; i--) {
+      const ball = redBalls[i];
+      if (!ball.exists()) {
+        redBalls.splice(i, 1);
+        continue;
+      }
+      ball.pos = ball.pos.add(ball.velocity.scale(dt()));
+      const ballCell = worldToCell(ball.pos);
+      if (isSolidCell(ballCell.x, ballCell.y)) {
+        ball.destroy();
+        redBalls.splice(i, 1);
+      }
+    }
+
+    // Win condition: if player is close to red monster, they win
+    const playerToMonster = player.pos.sub(redMonster.pos).len();
+    if (playerToMonster < GRID * 1.5) {
+      add([
+        text('You reached the Red Monster!', { size: 32 }),
+        anchor('center'),
+        pos(width() / 2, height() / 2 - 40),
+        color(220, 50, 50),
+        z(100),
+      ]);
+      add([
+        text('Press Esc to return to menu', { size: 18 }),
+        anchor('center'),
+        pos(width() / 2, height() / 2 + 20),
+        color(40, 40, 40),
+        z(100),
+      ]);
+      // Disable further updates by removing the monster and balls
+      redMonster.destroy();
+      for (const ball of redBalls) ball.destroy();
+      redBalls.length = 0;
     }
   });
 

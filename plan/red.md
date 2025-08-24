@@ -21,3 +21,11 @@ They move predictably left-right or up-down. They always only turn around when r
 
 If the player touches them, they get pushed out of the way.
 
+Make sure there is no direct path from red monster to player, without going all the way to the right
+
+Dynamic obstables are entering walls and then turning around. They should turn around _at_ the wall
+
+Dynamic blocks should not push player through walls, instead the dynamic block should turn around if the player _would_ have been pushed through a wall
+
+If two dynamic obstacles run into each other, they should turn around
+
