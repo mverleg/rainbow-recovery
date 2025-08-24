@@ -69,18 +69,22 @@ export function buildGrid(spacing = GRID, lineW = 1, alpha = 0.6) {
 export function updateGrid(cam = { x: 0, y: 0 }, spacing = GRID) {
   const w = width();
   const h = height();
-  const offX = ((-cam.x % spacing) + spacing) % spacing;
-  const offY = ((-cam.y % spacing) + spacing) % spacing;
+
+  // Align grid to world coordinates accounting for camera center and viewport size.
+  const originX = Math.floor((cam.x - w / 2) / spacing) * spacing;
+  const originY = Math.floor((cam.y - h / 2) / spacing) * spacing;
 
   for (const { node, idx } of gridV) {
     node.width = 1; // ensure thin line
     node.height = h + spacing * 2;
-    node.pos = vec2(idx * spacing + offX, -spacing);
+    // Place vertical lines at world X = originX + idx*spacing, extend slightly beyond view vertically
+    node.pos = vec2(originX + idx * spacing, cam.y - h / 2 - spacing);
   }
   for (const { node, idx } of gridH) {
     node.width = w + spacing * 2;
     node.height = 1;
-    node.pos = vec2(-spacing, idx * spacing + offY);
+    // Place horizontal lines at world Y = originY + idx*spacing, extend slightly beyond view horizontally
+    node.pos = vec2(cam.x - w / 2 - spacing, originY + idx * spacing);
   }
 }
 

@@ -84,7 +84,7 @@ scene('menu', () => {
         const w = item.width;
         const h = item.height;
         const sRaw = Math.min(spriteMax / w, spriteMax / h);
-        const s = m.key === 'red' ? sRaw * 1.1 : sRaw;
+        const s = (m.key === 'red' || m.key === 'blue') ? (sRaw * 1.3) : sRaw;
         item.baseScale = s;
         item.scale = vec2(s);
         item.__sized = true;
