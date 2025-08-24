@@ -26,9 +26,8 @@
   <canvas id="game"></canvas>
 
   <!-- Use Kaboom via CDN (ESM). Pin to a stable version to avoid breaking changes. -->
+  <script src="https://unpkg.com/kaboom@3000.0.1/dist/kaboom.js"></script>
   <script type="module">
-    import kaboom from "https://unpkg.com/kaboom@3001.0.0/dist/kaboom.mjs?module";
-
     // Initialize Kaboom. Using global: true exposes helpers like add(), sprite(), pos(), etc.
     const k = kaboom({
       canvas: document.querySelector('#game'),
@@ -116,8 +115,11 @@
       ]);
 
       const cols = 3;
-      const paddingX = 160;
-      const paddingY = 160;
+      // Target maximum sprite size for uniform appearance (in pixels)
+      const spriteMax = 120;
+      // Cell padding should be large enough to accommodate enlarged selection (1.2x)
+      const paddingX = spriteMax + 100;
+      const paddingY = spriteMax + 100;
       const startX = width() / 2 - ((cols - 1) * paddingX) / 2;
       const startY = height() / 2 - paddingY / 2;
 
@@ -134,16 +136,22 @@
           anchor('center'),
           pos(x, y),
           scale(1),
-          area(),
-          cursor('pointer'),
-          { monsterKey: m.key, monsterLabel: m.label },
+          area({ cursor: 'pointer' }),
+          { monsterKey: m.key, monsterLabel: m.label, baseScale: 1 },
         ]);
 
-        // Label under sprite
+        // Compute a uniform base scale so the sprite fits within spriteMax box
+        const w = item.width;
+        const h = item.height;
+        const s = Math.min(spriteMax / w, spriteMax / h);
+        item.baseScale = s;
+        item.scale = vec2(s);
+
+        // Label under sprite, positioned based on spriteMax to keep spacing consistent
         add([
           text(m.label, { size: 18 }),
           anchor('top'),
-          pos(x, y + 48),
+          pos(x, y + spriteMax / 2 + 24),
           color(255, 255, 255),
         ]);
 
@@ -158,8 +166,9 @@
 
       function updateSelection() {
         items.forEach((it, idx) => {
-          it.scale = vec2(idx === selected ? 1.2 : 1);
-          it.opacity = idx === selected ? 1 : 0.8;
+          const mult = idx === selected ? 1.2 : 1;
+          it.scale = vec2(it.baseScale * mult);
+          it.opacity = idx === selected ? 1 : 0.9;
         });
       }
 
