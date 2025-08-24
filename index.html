@@ -40,6 +40,9 @@
       pixelDensity: 1,
     });
 
+    // A global relayout callback that current scene can register
+    let currentRelayout = null;
+
     // Grid overlay: draw a light grid across the canvas and keep it updated on resize
     let gridLines = [];
 
@@ -84,9 +87,20 @@
 
     // Keep canvas sized to the window on resize and rebuild the grid
     window.addEventListener('resize', () => {
-      k.resize(window.innerWidth, window.innerHeight);
+      // Use global resize helper from Kaboom (k.resize may not exist)
+      if (typeof resize === 'function') {
+        resize(window.innerWidth, window.innerHeight);
+      } else if (k && k.canvas) {
+        // Fallback: manually resize the canvas element
+        k.canvas.width = window.innerWidth;
+        k.canvas.height = window.innerHeight;
+      }
       // Rebuild grid in whatever current scene is active
       buildGrid();
+      // Ask current scene (if any) to recompute layout/positions
+      if (typeof currentRelayout === 'function') {
+        currentRelayout();
+      }
     });
 
     // Load all monster sprites from img/
@@ -110,7 +124,7 @@
       buildGrid();
 
       // Title
-      add([
+      const title = add([
         text('Choose a Monster', { size: 32 }),
         pos(width() / 2, 48),
         anchor('center'),
@@ -122,13 +136,13 @@
       const char = add([
         sprite('char-front'),
         anchor('center'),
-        // Place near bottom-left area, within view
-        pos(Math.max(96, width() * 0.15), height() - 140),
+        // Place at the top center in menu
+        pos(width() / 2, 110),
         z(5),
         opacity(0.95),
       ]);
       // Fit the character into a target max dimension (in pixels)
-      const charTarget = 80;
+      const charTarget = 140; // make the player character larger on main page
       const charBase = Math.max(char.width, char.height);
       const charScale = charBase > 0 ? (charTarget / charBase) : 1;
       char.scale = vec2(charScale);
@@ -142,7 +156,7 @@
       const startX = width() / 2 - ((cols - 1) * paddingX) / 2;
       const startY = height() / 2 - paddingY / 2;
 
-      const items = [];
+      const items = []; const labels = [];
 
       monsters.forEach((m, i) => {
         const col = i % cols;
@@ -162,17 +176,21 @@
         // Compute a uniform base scale so the sprite fits within spriteMax box
         const w = item.width;
         const h = item.height;
-        const s = Math.min(spriteMax / w, spriteMax / h);
+        const sRaw = Math.min(spriteMax / Math.max(1, w), spriteMax / Math.max(1, h));
+        // Slightly increase red monster size for better prominence
+        const s = m.key === 'red' ? sRaw * 1.1 : sRaw;
         item.baseScale = s;
         item.scale = vec2(s);
 
         // Label under sprite, positioned based on spriteMax to keep spacing consistent
-        add([
+        const label = add([
           text(m.label, { size: 18 }),
           anchor('top'),
           pos(x, y + spriteMax / 2 + 24),
           color(20, 20, 20),
         ]);
+        labels.push(label);
+        item.menuLabel = label;
 
         item.onClick(() => {
           go('level', m.key);
@@ -191,7 +209,7 @@
         items.push(item);
       });
 
-      let selected = 0;
+      let selected = -1;
 
       function updateSelection() {
         // Selection visuals handled per-item in onUpdate combining selection and hover states.
@@ -229,19 +247,59 @@
       onKeyPress('up', () => moveVertical(-1));
       onKeyPress('down', () => moveVertical(1));
       onKeyPress(['enter', 'space'], () => {
-        go('level', monsters[selected].key);
+        let idx = selected;
+        // If nothing selected, try hovered item
+        if (idx < 0) {
+          for (let i = 0; i < items.length; i++) {
+            const it = items[i];
+            const hovered = typeof it.isHovering === 'function' ? it.isHovering() : (typeof it.isHovered === 'function' ? it.isHovered() : false);
+            if (hovered) { idx = i; break; }
+          }
+        }
+        // Fallback to first item
+        if (idx < 0) idx = 0;
+        go('level', monsters[idx].key);
       });
 
       // Also allow clicking anywhere near the selected item with Enter hint
       updateSelection();
 
       // Help text
-      add([
+      const help = add([
         text('Use Arrow Keys + Enter, or Click a Monster', { size: 18 }),
         pos(width() / 2, height() - 32),
         anchor('center'),
         color(40, 40, 40),
       ]);
+
+      function relayoutMenu() {
+        // recompute layout metrics
+        const paddingX = spriteMax + 100;
+        const paddingY = spriteMax + 100;
+        const startX = width() / 2 - ((cols - 1) * paddingX) / 2;
+        const startY = height() / 2 - paddingY / 2;
+
+        title.pos = vec2(width() / 2, 48);
+        char.pos = vec2(width() / 2, 110);
+        help.pos = vec2(width() / 2, height() - 32);
+
+        items.forEach((item, i) => {
+          const col = i % cols;
+          const row = Math.floor(i / cols);
+          const x = startX + col * paddingX;
+          const y = startY + row * paddingY;
+          item.pos = vec2(x, y);
+          if (item.menuLabel) {
+            item.menuLabel.pos = vec2(x, y + spriteMax / 2 + 24);
+          }
+        });
+      }
+
+      // Register relayout for this scene
+      currentRelayout = relayoutMenu;
+
+      // Do an initial relayout in case of early size changes
+      relayoutMenu();
     });
 
     // Empty level scene for each monster
@@ -249,26 +307,35 @@
       buildGrid();
 
       // Show the monster centered
-      add([
+      const centerMonster = add([
         sprite(monsterKey),
         anchor('center'),
         pos(width() / 2, height() / 2 - 32),
         scale(2),
       ]);
 
-      add([
+      const levelTitle = add([
         text(`Level: ${monsterKey} (empty)`, { size: 24 }),
         anchor('center'),
         pos(width() / 2, 48),
         color(0, 0, 0),
       ]);
 
-      add([
+      const backHint = add([
         text('Press Esc to return to Menu', { size: 18 }),
         anchor('center'),
         pos(width() / 2, height() - 32),
         color(40, 40, 40),
       ]);
+
+      function relayoutLevel() {
+        centerMonster.pos = vec2(width() / 2, height() / 2 - 32);
+        levelTitle.pos = vec2(width() / 2, 48);
+        backHint.pos = vec2(width() / 2, height() - 32);
+      }
+
+      currentRelayout = relayoutLevel;
+      relayoutLevel();
 
       onKeyPress('escape', () => go('menu'));
       onClick(() => go('menu'));

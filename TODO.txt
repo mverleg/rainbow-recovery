@@ -1,13 +1,16 @@
+Enter key in main menu does not work
 
-Make the menu monsters react visually to mouse hover
+Resize does not error anymore, but also does not resize the playable area
 
-Make the main menu monsters a bit bigger
+The player character on main page can be larger
 
-In the main menu, also show the char-front image, which is the player character. It cannot be interacted with
+---
 
-Make the background of the menu and all levels light gray
+On the main menu, create a rainbow made of 6 arches
 
-Make grid lines a different colors o they are visible on gray
-Same for text
+Each arch has an individual hover effect - when hovered the color goes from vague to bright
 
-Make the character-front image small consistent size
+Use the rainbow colors: purple, blue, green, yellow, orange, red (red being outer)
+
+
+
