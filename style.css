@@ -1,0 +1,61 @@
+/* Make the canvas fill the whole window */
+html, body {
+  height: 100%;
+  margin: 0;
+  background: #eee; /* light gray fallback background while Kaboom initializes */
+}
+#game {
+  display: block; /* remove inline gap */
+  width: 100vw;
+  height: 100vh;
+}
+/* Optional: hide overflow on mobile address bar changes */
+body { overflow: hidden; }
+/* Rainbow overlay */
+.rainbow-container {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  width: min(90vw, 900px);
+  height: calc(min(90vw, 900px) / 2);
+  pointer-events: none; /* allow clicks to pass through except on the arches themselves */
+  z-index: 9999;
+}
+.rainbow-arch {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  border-top-left-radius: 9999px;
+  border-top-right-radius: 9999px;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-style: solid;
+  border-bottom: none;
+  opacity: 0.55; /* vague by default */
+  filter: saturate(70%) brightness(0.95);
+  transition: opacity 200ms ease, filter 200ms ease, transform 200ms ease;
+  pointer-events: auto; /* enable hover */
+}
+.rainbow-arch:hover {
+  opacity: 1;
+  filter: saturate(120%) brightness(1.15);
+}
+/* Define sizes and colors for each arch (red outermost) */
+.arch-red    { width: 100%;          height: 50%; border-width: 28px; border-color: #e53935; }
+.arch-orange { width: calc(100% - 56px); height: calc(50% - 28px); border-width: 26px; border-color: #fb8c00; }
+.arch-yellow { width: calc(100% - 56px - 52px); height: calc(50% - 28px - 26px); border-width: 24px; border-color: #fdd835; }
+.arch-green  { width: calc(100% - 56px - 52px - 48px); height: calc(50% - 28px - 26px - 24px); border-width: 22px; border-color: #43a047; }
+.arch-blue   { width: calc(100% - 56px - 52px - 48px - 44px); height: calc(50% - 28px - 26px - 24px - 22px); border-width: 20px; border-color: #1e88e5; }
+.arch-purple { width: calc(100% - 56px - 52px - 48px - 44px - 40px); height: calc(50% - 28px - 26px - 24px - 22px - 20px); border-width: 18px; border-color: #8e24aa; }
+
+/* Small screens tweak to reduce thickness */
+@media (max-width: 480px) {
+  .arch-red    { border-width: 22px; }
+  .arch-orange { border-width: 20px; }
+  .arch-yellow { border-width: 18px; }
+  .arch-green  { border-width: 16px; }
+  .arch-blue   { border-width: 14px; }
+  .arch-purple { border-width: 12px; }
+}

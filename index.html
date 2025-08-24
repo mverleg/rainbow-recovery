@@ -102,13 +102,14 @@
     let currentRelayout = null;
 
     // Grid overlay: draw a light grid across the canvas and keep it updated on resize
-    let gridLines = [];
+    let gridV = [];
+    let gridH = [];
 
     function clearGrid() {
-      for (const line of gridLines) {
-        destroy(line);
-      }
-      gridLines = [];
+      for (const line of gridV) destroy(line.node);
+      for (const line of gridH) destroy(line.node);
+      gridV = [];
+      gridH = [];
     }
 
     // Use a 50% larger grid spacing everywhere (menu and levels)
@@ -119,30 +120,55 @@
       const w = width();
       const h = height();
 
+      // Build slightly beyond screen to cover offsets
+      const cols = Math.ceil(w / spacing) + 3;
+      const rows = Math.ceil(h / spacing) + 3;
+
       // Vertical lines (slightly bluish gray)
-      for (let x = 0; x <= w; x += spacing) {
+      for (let i = -1; i < cols - 1; i++) {
         const v = add([
-          rect(lineW, h),
+          rect(lineW, h + spacing * 2),
           anchor('topleft'),
-          pos(x, 0),
+          pos(0, -spacing),
           color(170, 180, 200),
           opacity(alpha),
           z(-1000),
         ]);
-        gridLines.push(v);
+        gridV.push({ node: v, idx: i });
       }
 
       // Horizontal lines (slightly reddish gray)
-      for (let y = 0; y <= h; y += spacing) {
+      for (let j = -1; j < rows - 1; j++) {
         const hLine = add([
-          rect(w, lineW),
+          rect(w + spacing * 2, lineW),
           anchor('topleft'),
-          pos(0, y),
+          pos(-spacing, 0),
           color(200, 180, 180),
           opacity(alpha),
           z(-1000),
         ]);
-        gridLines.push(hLine);
+        gridH.push({ node: hLine, idx: j });
+      }
+
+      // Initial position with zero camera offset
+      updateGrid({ x: 0, y: 0 }, spacing);
+    }
+
+    function updateGrid(cam = { x: 0, y: 0 }, spacing = GRID) {
+      const w = width();
+      const h = height();
+      const offX = ((-cam.x % spacing) + spacing) % spacing;
+      const offY = ((-cam.y % spacing) + spacing) % spacing;
+
+      for (const { node, idx } of gridV) {
+        node.width = 1; // ensure thin line
+        node.height = h + spacing * 2;
+        node.pos = vec2(idx * spacing + offX, -spacing);
+      }
+      for (const { node, idx } of gridH) {
+        node.width = w + spacing * 2;
+        node.height = 1;
+        node.pos = vec2(-spacing, idx * spacing + offY);
       }
     }
 
@@ -162,6 +188,8 @@
       if (typeof currentRelayout === 'function') {
         currentRelayout();
       }
+      // Align grid with current camera
+      try { updateGrid(camPos()); } catch (e) { /* ignore if scene not ready */ }
     });
 
     // Load all monster sprites from img/
@@ -409,26 +437,13 @@
 
       // --- RED LEVEL IMPLEMENTATION ---
 
-      // World metrics
-      const WORLD_COLS = 100;
-      const WORLD_ROWS = 100;
-      const WORLD_W = WORLD_COLS * GRID;
-      const WORLD_H = WORLD_ROWS * GRID;
-
-      // Draw a subtle world border (optional)
-      const border = add([
-        rect(WORLD_W, WORLD_H),
-        anchor('topleft'),
-        pos(0, 0),
-        color(255, 255, 255),
-        opacity(0),
-        z(-2000),
-      ]);
+      // Infinite world: we no longer define finite world metrics or borders.
 
       // Player
       const player = add([
         sprite('char-front'),
-        pos(GRID * 2, GRID * 2),
+        // Start on the center of a grid cell
+        pos(GRID * 2 + GRID * 0.5, GRID * 2 + GRID * 0.5),
         anchor('center'),
         area(),
         z(10),
@@ -448,12 +463,12 @@
         }
       });
 
-      function snapToGrid(v) {
-        return vec2(Math.round(v.x / GRID) * GRID, Math.round(v.y / GRID) * GRID);
-      }
-
-      function withinWorld(p) {
-        return p.x >= GRID * 0.5 && p.y >= GRID * 0.5 && p.x <= WORLD_W - GRID * 0.5 && p.y <= WORLD_H - GRID * 0.5;
+      function snapToGridCenter(v) {
+        // Snap to the center of the nearest tile, not the intersection lines
+        return vec2(
+          Math.round(v.x / GRID) * GRID + GRID * 0.5,
+          Math.round(v.y / GRID) * GRID + GRID * 0.5,
+        );
       }
 
       const SPEED = GRID * 6; // pixels per second
@@ -469,13 +484,12 @@
 
       function tryStartMove(dir) {
         if (player.moving) return false;
-        const cur = snapToGrid(player.pos);
+        const cur = snapToGridCenter(player.pos);
         let next = cur.clone();
         if (dir === 'left') next.x -= GRID;
         if (dir === 'right') next.x += GRID;
         if (dir === 'up') next.y -= GRID;
         if (dir === 'down') next.y += GRID;
-        if (!withinWorld(next)) return false;
         player.target = next;
         player.moving = true;
         setDir(dir);
@@ -512,36 +526,21 @@
           if (dirHeld) tryStartMove(dirHeld);
         }
 
-        // Camera scroll with 40% margins
-        const marginX = width() * 0.4;
-        const marginY = height() * 0.4;
-        let cam = camPos();
-        const left = cam.x - width() / 2 + marginX;
-        const right = cam.x + width() / 2 - marginX;
-        const top = cam.y - height() / 2 + marginY;
-        const bottom = cam.y + height() / 2 - marginY;
-        let cx = cam.x;
-        let cy = cam.y;
-        if (player.pos.x < left) cx = player.pos.x - (width() / 2 - marginX);
-        if (player.pos.x > right) cx = player.pos.x + (width() / 2 - marginX);
-        if (player.pos.y < top) cy = player.pos.y - (height() / 2 - marginY);
-        if (player.pos.y > bottom) cy = player.pos.y + (height() / 2 - marginY);
-        // Clamp camera to world
-        cx = Math.max(width() / 2, Math.min(WORLD_W - width() / 2, cx));
-        cy = Math.max(height() / 2, Math.min(WORLD_H - height() / 2, cy));
-        camPos(cx, cy);
+        // Camera: keep player centered; infinite world (no clamping)
+        camPos(player.pos);
+
+        // Scroll the grid with camera
+        updateGrid(camPos());
       });
 
-      // Initial camera center near player
+      // Initial camera center near player and grid
       camPos(player.pos);
+      updateGrid(camPos());
 
-      // Relayout handler (mostly grid is overlay; keep camera clamped)
+      // Relayout handler: update grid after resize
       currentRelayout = () => {
-        // Keep camera within world bounds on resize
-        const cam = camPos();
-        const cx = Math.max(width() / 2, Math.min(WORLD_W - width() / 2, cam.x));
-        const cy = Math.max(height() / 2, Math.min(WORLD_H - height() / 2, cam.y));
-        camPos(cx, cy);
+        // After resize, ensure grid rebuild aligns with camera
+        updateGrid(camPos());
       };
     });
 

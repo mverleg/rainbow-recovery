@@ -1,20 +1,14 @@
 
-On the main menu, create a rainbow made of 6 arches
+The grid should scroll with movement, not jump. The world should be infinite.
 
-Each arch has an individual hover effect - when hovered the color goes from vague to bright
+The character should stand on the grid center, not the intersections.
 
-Use the rainbow colors: purple, blue, green, yellow, orange, red (red being outer)
+Split the javascript into a separate file, and the css into another one.
 
+The player cannot move back into the grid,
 
-Create the first level, red monster
+Change the game name and window title to Rainbow Recovery
 
-It has a grid like the main page, but scale it up 50% (everywhere including main)
+The movement arrow keys are wrong
 
-The player character can move on the grid. It always stops on a grid square, but motion is smooth inbetween
-
-When player gets within 40% of an edge, the world scrolls
-
-The player character looks like char-front and is similar size as grid cell, using char-front and front-back for down and up. Use char-right for right, and mirror it for left.
-
-All other monsters should say "level not ready" when selected
-
+It should not allow diagonal movement
