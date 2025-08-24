@@ -6,7 +6,15 @@ export const state = {
   currentRelayout: null,
 };
 
-// Use a 50% larger grid spacing everywhere (menu and levels)
+export const monsters = [
+    { key: 'red',    path: 'img/red-monster.png',    label: 'Red' },
+    { key: 'orange', path: 'img/orange-monster.png', label: 'Orange' },
+    { key: 'yellow', path: 'img/yellow-monster.png', label: 'Yellow' },
+    { key: 'green',  path: 'img/green-monster.png',  label: 'Green' },
+    { key: 'blue',   path: 'img/blue-monster.png',   label: 'Blue' },
+    { key: 'purple', path: 'img/purple-monster.png', label: 'Purple' },
+];
+
 export const GRID = 96;
 
 let gridV = [];
@@ -77,11 +85,3 @@ export function updateGrid(cam = { x: 0, y: 0 }, spacing = GRID) {
 }
 
 // List of monsters with sprites and labels (used by menu and main sprite loading)
-export const monsters = [
-  { key: 'red',    path: 'img/red-monster.png',    label: 'Red' },
-  { key: 'orange', path: 'img/orange-monster.png', label: 'Orange' },
-  { key: 'yellow', path: 'img/yellow-monster.png', label: 'Yellow' },
-  { key: 'green',  path: 'img/green-monster.png',  label: 'Green' },
-  { key: 'blue',   path: 'img/blue-monster.png',   label: 'Blue' },
-  { key: 'purple', path: 'img/purple-monster.png', label: 'Purple' },
-];
