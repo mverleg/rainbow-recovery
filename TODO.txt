@@ -1,6 +1,13 @@
 
-Please create a menu with all the monsters from the img/ folder
+Make the menu monsters react visually to mouse hover
 
-Each monster will be a level (empty for now)
+Make the main menu monsters a bit bigger
 
-MAke it possible to click the monsters to enter the level, or use arrow hotkeys with enter key
+In the main menu, also show the char-front image, which is the player character. It cannot be interacted with
+
+Make the background of the menu and all levels light gray
+
+Make grid lines a different colors o they are visible on gray
+Same for text
+
+Make the character-front image small consistent size
