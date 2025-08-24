@@ -27,7 +27,7 @@
 
   <!-- Use Kaboom via CDN (ESM). Pin to a stable version to avoid breaking changes. -->
   <script type="module">
-    import kaboom from "https://unpkg.com/kaboom@3001.0.0/dist/kaboom.mjs";
+    import kaboom from "https://unpkg.com/kaboom@3001.0.0/dist/kaboom.mjs?module";
 
     // Initialize Kaboom. Using global: true exposes helpers like add(), sprite(), pos(), etc.
     const k = kaboom({
@@ -81,30 +81,172 @@
       }
     }
 
-    // Build once initially
-    buildGrid();
-
     // Keep canvas sized to the window on resize and rebuild the grid
     window.addEventListener('resize', () => {
       k.resize(window.innerWidth, window.innerHeight);
+      // Rebuild grid in whatever current scene is active
       buildGrid();
     });
 
-    // Optional: demonstrate local asset loading (uses your existing repo images)
-    // Comment out if you want a completely blank game window.
-    loadSprite('hero', 'img/char-front.png');
-    onLoad(() => {
-      // Place the sprite in the center to indicate the game is running
+    // Load all monster sprites from img/
+    const monsters = [
+      { key: 'blue',   path: 'img/blue-monster.png',   label: 'Blue' },
+      { key: 'green',  path: 'img/green-monster.png',  label: 'Green' },
+      { key: 'orange', path: 'img/orange-monster.png', label: 'Orange' },
+      { key: 'purple', path: 'img/purple-monster.png', label: 'Purple' },
+      { key: 'red',    path: 'img/red-monster.png',    label: 'Red' },
+      { key: 'yellow', path: 'img/yellow-monster.png', label: 'Yellow' },
+    ];
+
+    for (const m of monsters) {
+      loadSprite(m.key, m.path);
+    }
+
+    // Menu scene: shows all monsters; click or use arrows+Enter to select
+    scene('menu', () => {
+      buildGrid();
+
+      // Title
       add([
-        sprite('hero'),
+        text('Choose a Monster', { size: 32 }),
+        pos(width() / 2, 48),
         anchor('center'),
-        pos(width() / 2, height() / 2),
-        scale(2),
+        color(255, 255, 255),
+        z(10),
+      ]);
+
+      const cols = 3;
+      const paddingX = 160;
+      const paddingY = 160;
+      const startX = width() / 2 - ((cols - 1) * paddingX) / 2;
+      const startY = height() / 2 - paddingY / 2;
+
+      const items = [];
+
+      monsters.forEach((m, i) => {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const x = startX + col * paddingX;
+        const y = startY + row * paddingY;
+
+        const item = add([
+          sprite(m.key),
+          anchor('center'),
+          pos(x, y),
+          scale(1),
+          area(),
+          cursor('pointer'),
+          { monsterKey: m.key, monsterLabel: m.label },
+        ]);
+
+        // Label under sprite
+        add([
+          text(m.label, { size: 18 }),
+          anchor('top'),
+          pos(x, y + 48),
+          color(255, 255, 255),
+        ]);
+
+        item.onClick(() => {
+          go('level', m.key);
+        });
+
+        items.push(item);
+      });
+
+      let selected = 0;
+
+      function updateSelection() {
+        items.forEach((it, idx) => {
+          it.scale = vec2(idx === selected ? 1.2 : 1);
+          it.opacity = idx === selected ? 1 : 0.8;
+        });
+      }
+
+      function clampIndex(i) {
+        const n = items.length;
+        return (i + n) % n;
+      }
+
+      function moveHorizontal(dir) {
+        selected = clampIndex(selected + dir);
+        updateSelection();
+      }
+
+      function moveVertical(dir) {
+        const n = items.length;
+        const cols = 3;
+        const rows = Math.ceil(n / cols);
+        const curCol = selected % cols;
+        const curRow = Math.floor(selected / cols);
+        let newRow = curRow + dir;
+        if (newRow < 0) newRow = rows - 1;
+        if (newRow >= rows) newRow = 0;
+        let newIndex = newRow * cols + curCol;
+        // If last row is shorter, clamp to last item
+        if (newIndex >= n) newIndex = n - 1;
+        selected = newIndex;
+        updateSelection();
+      }
+
+      onKeyPress('left', () => moveHorizontal(-1));
+      onKeyPress('right', () => moveHorizontal(1));
+      onKeyPress('up', () => moveVertical(-1));
+      onKeyPress('down', () => moveVertical(1));
+      onKeyPress(['enter', 'space'], () => {
+        go('level', monsters[selected].key);
+      });
+
+      // Also allow clicking anywhere near the selected item with Enter hint
+      updateSelection();
+
+      // Help text
+      add([
+        text('Use Arrow Keys + Enter, or Click a Monster', { size: 18 }),
+        pos(width() / 2, height() - 32),
+        anchor('center'),
+        color(200, 200, 200),
       ]);
     });
 
-    // Log to console so you can verify initialization without visuals
-    console.log('Kaboom template initialized');
+    // Empty level scene for each monster
+    scene('level', (monsterKey) => {
+      buildGrid();
+
+      // Show the monster centered
+      add([
+        sprite(monsterKey),
+        anchor('center'),
+        pos(width() / 2, height() / 2 - 32),
+        scale(2),
+      ]);
+
+      add([
+        text(`Level: ${monsterKey} (empty)`, { size: 24 }),
+        anchor('center'),
+        pos(width() / 2, 48),
+      ]);
+
+      add([
+        text('Press Esc to return to Menu', { size: 18 }),
+        anchor('center'),
+        pos(width() / 2, height() - 32),
+        color(200, 200, 200),
+      ]);
+
+      onKeyPress('escape', () => go('menu'));
+      onClick(() => go('menu'));
+    });
+
+    // Start the game once assets are loaded
+    onLoad(() => {
+      go('menu');
+    });
+
+    // Initial grid build (for first scene before any resize events)
+    buildGrid();
+
+    console.log('Kaboom menu initialized');
   </script>
 </body>
 </html>

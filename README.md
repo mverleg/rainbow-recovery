@@ -39,8 +39,9 @@ Use any static file server. Examples:
 ## Kaboom version
 This template pins Kaboom via CDN to a stable version to avoid breaking changes:
 ```
-https://unpkg.com/kaboom@3001.0.0/dist/kaboom.mjs
+https://unpkg.com/kaboom@3001.0.0/dist/kaboom.mjs?module
 ```
+Note: the `?module` flag ensures the CDN serves the file with the proper MIME type (`application/javascript`) for ESM imports, avoiding browser blocks due to `text/plain`.
 You can update the version in `index.html` as needed.
 
 ## License
