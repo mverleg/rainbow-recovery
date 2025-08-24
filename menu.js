@@ -31,11 +31,16 @@ scene('menu', () => {
     z(5),
     opacity(0.95),
   ]);
-  // Fit the character into a target max dimension (in pixels)
-  const charTarget = 140; // make the player character larger on main page
-  const charBase = Math.max(char.width, char.height);
-  const charScale = charBase > 0 ? (charTarget / charBase) : 1;
-  char.scale = vec2(charScale);
+  // Defer decorative character sizing until the sprite dimensions are ready
+  const charTarget = 140; // target max dimension (in pixels)
+  char.onUpdate(() => {
+    if (!char.__sized && char.width > 0 && char.height > 0) {
+      const base = Math.max(char.width, char.height);
+      const s = base > 0 ? (charTarget / base) : 1;
+      char.scale = vec2(s);
+      char.__sized = true;
+    }
+  });
 
   const cols = 3;
   // Target maximum sprite size for uniform appearance (in pixels)

@@ -35,9 +35,9 @@ scene('level', (monsterKey) => {
 
   // --- RED LEVEL IMPLEMENTATION ---
 
-  // Finite level metrics
-  const LEVEL_W = 100; // cells
-  const LEVEL_H = 30;  // cells
+  // Finite level metrics (set per TODO: 70x25)
+  const LEVEL_W = 70; // cells
+  const LEVEL_H = 25; // cells
 
   // Data-driven map and legend
   const LEGEND = {
@@ -90,10 +90,50 @@ scene('level', (monsterKey) => {
           color(120, 120, 140),
           z(1),
           area(),
+          { solidWall: true },
         ]);
       }
     }
   }
+
+  // Dynamic obstacles: moving blocks in corridors
+  const movers = [];
+  function addMover(cellX, cellY, axis, amplitudeCells, speed = 1, tint = [180, 80, 80]) {
+    if (isSolidCell(cellX, cellY)) return;
+    const base = cellToWorld(cellX, cellY);
+    const node = add([
+      rect(GRID * 0.9, GRID * 0.9),
+      anchor('center'),
+      pos(base),
+      color(tint[0], tint[1], tint[2]),
+      z(2),
+      area(),
+      { base: base.clone(), axis, amp: amplitudeCells * GRID, speed, phase: rand(0, Math.PI * 2) },
+    ]);
+    movers.push(node);
+  }
+
+  // Place a few movers horizontally and vertically in safe corridors
+  for (let y = 3; y < LEVEL_H - 3; y += 6) {
+    for (let x = 5; x < LEVEL_W - 5; x += 16) {
+      if (!isSolidCell(x, y)) addMover(x, y, 'x', 3, 0.7);
+    }
+  }
+  for (let x = 8; x < LEVEL_W - 8; x += 14) {
+    for (let y = 4; y < LEVEL_H - 4; y += 10) {
+      if (!isSolidCell(x, y)) addMover(x, y, 'y', 2, 0.9, [80, 80, 180]);
+    }
+  }
+
+  onUpdate(() => {
+    const t = time();
+    for (const m of movers) {
+      const offset = Math.sin(t * m.speed + m.phase) * m.amp;
+      const p = m.base.clone();
+      if (m.axis === 'x') p.x += offset; else p.y += offset;
+      m.pos = p;
+    }
+  });
 
   // Helpers
   function gridCenter(p) {
@@ -129,11 +169,36 @@ scene('level', (monsterKey) => {
     }
   }
 
+  // Utility: find nearest empty cell to a preferred position
+  function findEmptyNear(prefX, prefY, maxRadius = 10) {
+    if (!isSolidCell(prefX, prefY)) return vec2(prefX, prefY);
+    for (let r = 1; r <= maxRadius; r++) {
+      for (let dy = -r; dy <= r; dy++) {
+        for (let dx = -r; dx <= r; dx++) {
+          const cx = prefX + dx;
+          const cy = prefY + dy;
+          if (!inBounds(cx, cy)) continue;
+          if (!isSolidCell(cx, cy)) return vec2(cx, cy);
+        }
+      }
+    }
+    // Fallback: center of the map
+    for (let y = 1; y < LEVEL_H - 1; y++) {
+      for (let x = 1; x < LEVEL_W - 1; x++) {
+        if (!isSolidCell(x, y)) return vec2(x, y);
+      }
+    }
+    return vec2(1, 1);
+  }
+
   // Player
+  // Compute a safe spawn position once
+  const startCell = findEmptyNear(2, 2);
+  const startPos = cellToWorld(startCell.x, startCell.y);
   const player = add([
     sprite('char-front'),
-    // Start on the center of a grid cell
-    pos(GRID * 2 + GRID * 0.5, GRID * 2 + GRID * 0.5),
+    // Spawn at a safe empty cell near the entrance (fixes top-left inside wall issue)
+    pos(startPos),
     anchor('center'),
     area(),
     z(10),
@@ -305,6 +370,69 @@ scene('level', (monsterKey) => {
   }
 
   onUpdate(applyCamera);
+
+  // Red monster near the end (bottom-right), with occasional corner patrol
+  const redSpawnCell = findEmptyNear(LEVEL_W - 3, LEVEL_H - 3);
+  const redMonster = add([
+    sprite('red'),
+    anchor('center'),
+    pos(cellToWorld(redSpawnCell.x, redSpawnCell.y)),
+    z(5),
+    area(),
+    { baseScale: 1, patrolIndex: 0, nextSwitch: time() + rand(1, 3), patrolPaused: false },
+  ]);
+  // Size monster once
+  redMonster.onUpdate(() => {
+    if (!redMonster.__sized && redMonster.width > 0 && redMonster.height > 0) {
+      const base = Math.max(redMonster.width, redMonster.height);
+      redMonster.baseScale = (GRID * 0.9) / base;
+      redMonster.scale = vec2(redMonster.baseScale);
+      redMonster.__sized = true;
+    }
+  });
+  // Simple square patrol clockwise around its spawn corner occasionally
+  const patrolDirs = ['left', 'up', 'right', 'down'];
+  const patrolVecs = {
+    left: vec2(-1, 0),
+    right: vec2(1, 0),
+    up: vec2(0, -1),
+    down: vec2(0, 1),
+  };
+  let redTarget = redMonster.pos.clone();
+  const RED_SPEED = GRID * 3.5;
+  onUpdate(() => {
+    // Occasionally decide to start or pause patrol
+    if (time() >= redMonster.nextSwitch) {
+      redMonster.patrolPaused = !redMonster.patrolPaused;
+      redMonster.nextSwitch = time() + (redMonster.patrolPaused ? rand(1.2, 2.2) : rand(2.5, 4.5));
+      if (!redMonster.patrolPaused) {
+        // choose next segment one cell length
+        for (let i = 0; i < 4; i++) {
+          const dir = patrolDirs[(redMonster.patrolIndex + i) % 4];
+          const v = patrolVecs[dir];
+          const curCell = worldToCell(redMonster.pos);
+          const ncell = vec2(curCell.x + v.x, curCell.y + v.y);
+          if (!isSolidCell(ncell.x, ncell.y)) {
+            redMonster.patrolIndex = (redMonster.patrolIndex + i + 1) % 4;
+            redTarget = cellToWorld(ncell.x, ncell.y);
+            break;
+          }
+        }
+      }
+    }
+    if (!redMonster.patrolPaused) {
+      const delta = redTarget.sub(redMonster.pos);
+      const dist = delta.len();
+      if (dist > 0.001) {
+        const step = RED_SPEED * dt();
+        if (step >= dist) {
+          redMonster.pos = redTarget;
+        } else {
+          redMonster.pos = redMonster.pos.add(delta.unit().scale(step));
+        }
+      }
+    }
+  });
 
   // Relayout handler for window resize (rebuild grid and keep dead-zone logic consistent)
   state.currentRelayout = () => {

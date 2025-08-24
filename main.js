@@ -9,6 +9,17 @@ const k = kaboom({
   pixelDensity: 1,
 });
 
+// Ensure the canvas can receive keyboard focus for key events
+if (k && k.canvas) {
+  try {
+    k.canvas.setAttribute('tabindex', '0');
+    // Focus on first interaction or immediately after load
+    k.canvas.addEventListener('click', () => k.canvas.focus(), { once: false });
+  } catch (e) {
+    console.warn('Canvas focus setup failed:', e);
+  }
+}
+
 (async () => {
   // Import shared utilities and state after Kaboom has initialized globals
   const { state, buildGrid, updateGrid, monsters } = await import('./shared.js');
@@ -40,6 +51,8 @@ const k = kaboom({
   loadSprite('char-right', 'img/char-right.png');
 
   onLoad(() => {
+    // Focus the canvas so keyboard controls (arrows/Enter) work immediately
+    try { k.canvas && k.canvas.focus && k.canvas.focus(); } catch {}
     go('menu');
   });
 
