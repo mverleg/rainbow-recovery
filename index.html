@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kaboom.js Template</title>
+  <meta name="description" content="Minimal Kaboom.js template: just a game window in the browser with boilerplate and dependencies via CDN." />
+  <style>
+    /* Make the canvas fill the whole window */
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: #000; /* fallback background while Kaboom initializes */
+    }
+    #game {
+      display: block; /* remove inline gap */
+      width: 100vw;
+      height: 100vh;
+    }
+    /* Optional: hide overflow on mobile address bar changes */
+    body { overflow: hidden; }
+  </style>
+</head>
+<body>
+  <!-- The canvas Kaboom will render to -->
+  <canvas id="game"></canvas>
+
+  <!-- Use Kaboom via CDN (ESM). Pin to a stable version to avoid breaking changes. -->
+  <script type="module">
+    import kaboom from "https://unpkg.com/kaboom@3001.0.0/dist/kaboom.mjs";
+
+    // Initialize Kaboom. Using global: true exposes helpers like add(), sprite(), pos(), etc.
+    const k = kaboom({
+      canvas: document.querySelector('#game'),
+      width: window.innerWidth,
+      height: window.innerHeight,
+      background: [ 0, 0, 0 ], // black background
+      letterbox: true,
+      global: true,
+      // Set pixelDensity to 1 to keep a 1:1 mapping of CSS pixels to canvas pixels (optional)
+      pixelDensity: 1,
+    });
+
+    // Grid overlay: draw a light grid across the canvas and keep it updated on resize
+    let gridLines = [];
+
+    function clearGrid() {
+      for (const line of gridLines) {
+        destroy(line);
+      }
+      gridLines = [];
+    }
+
+    function buildGrid(spacing = 64, lineW = 1, alpha = 0.2) {
+      clearGrid();
+      const w = width();
+      const h = height();
+
+      // Vertical lines
+      for (let x = 0; x <= w; x += spacing) {
+        const v = add([
+          rect(lineW, h),
+          anchor('topleft'),
+          pos(x, 0),
+          opacity(alpha),
+          z(-1000),
+        ]);
+        gridLines.push(v);
+      }
+
+      // Horizontal lines
+      for (let y = 0; y <= h; y += spacing) {
+        const hLine = add([
+          rect(w, lineW),
+          anchor('topleft'),
+          pos(0, y),
+          opacity(alpha),
+          z(-1000),
+        ]);
+        gridLines.push(hLine);
+      }
+    }
+
+    // Build once initially
+    buildGrid();
+
+    // Keep canvas sized to the window on resize and rebuild the grid
+    window.addEventListener('resize', () => {
+      k.resize(window.innerWidth, window.innerHeight);
+      buildGrid();
+    });
+
+    // Optional: demonstrate local asset loading (uses your existing repo images)
+    // Comment out if you want a completely blank game window.
+    loadSprite('hero', 'img/char-front.png');
+    onLoad(() => {
+      // Place the sprite in the center to indicate the game is running
+      add([
+        sprite('hero'),
+        anchor('center'),
+        pos(width() / 2, height() / 2),
+        scale(2),
+      ]);
+    });
+
+    // Log to console so you can verify initialization without visuals
+    console.log('Kaboom template initialized');
+  </script>
+</body>
+</html>

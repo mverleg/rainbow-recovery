@@ -1,0 +1,6 @@
+
+Please create a menu with all the monsters from the img/ folder
+
+Each monster will be a level (empty for now)
+
+MAke it possible to click the monsters to enter the level, or use arrow hotkeys with enter key
