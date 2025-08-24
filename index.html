@@ -19,11 +19,69 @@
     }
     /* Optional: hide overflow on mobile address bar changes */
     body { overflow: hidden; }
+    /* Rainbow overlay */
+    .rainbow-container {
+      position: absolute;
+      left: 50%;
+      top: 0;
+      transform: translateX(-50%);
+      width: min(90vw, 900px);
+      height: calc(min(90vw, 900px) / 2);
+      pointer-events: none; /* allow clicks to pass through except on the arches themselves */
+      z-index: 9999;
+    }
+    .rainbow-arch {
+      position: absolute;
+      left: 50%;
+      bottom: 0;
+      transform: translateX(-50%);
+      border-top-left-radius: 9999px;
+      border-top-right-radius: 9999px;
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+      border-style: solid;
+      border-bottom: none;
+      opacity: 0.55; /* vague by default */
+      filter: saturate(70%) brightness(0.95);
+      transition: opacity 200ms ease, filter 200ms ease, transform 200ms ease;
+      pointer-events: auto; /* enable hover */
+    }
+    .rainbow-arch:hover {
+      opacity: 1;
+      filter: saturate(120%) brightness(1.15);
+    }
+    /* Define sizes and colors for each arch (red outermost) */
+    .arch-red    { width: 100%;          height: 50%; border-width: 28px; border-color: #e53935; }
+    .arch-orange { width: calc(100% - 56px); height: calc(50% - 28px); border-width: 26px; border-color: #fb8c00; }
+    .arch-yellow { width: calc(100% - 56px - 52px); height: calc(50% - 28px - 26px); border-width: 24px; border-color: #fdd835; }
+    .arch-green  { width: calc(100% - 56px - 52px - 48px); height: calc(50% - 28px - 26px - 24px); border-width: 22px; border-color: #43a047; }
+    .arch-blue   { width: calc(100% - 56px - 52px - 48px - 44px); height: calc(50% - 28px - 26px - 24px - 22px); border-width: 20px; border-color: #1e88e5; }
+    .arch-purple { width: calc(100% - 56px - 52px - 48px - 44px - 40px); height: calc(50% - 28px - 26px - 24px - 22px - 20px); border-width: 18px; border-color: #8e24aa; }
+
+    /* Small screens tweak to reduce thickness */
+    @media (max-width: 480px) {
+      .arch-red    { border-width: 22px; }
+      .arch-orange { border-width: 20px; }
+      .arch-yellow { border-width: 18px; }
+      .arch-green  { border-width: 16px; }
+      .arch-blue   { border-width: 14px; }
+      .arch-purple { border-width: 12px; }
+    }
   </style>
 </head>
 <body>
   <!-- The canvas Kaboom will render to -->
   <canvas id="game"></canvas>
+
+  <!-- Rainbow overlay on main menu (decorative; hover to brighten) -->
+  <div class="rainbow-container" aria-hidden="true">
+    <div class="rainbow-arch arch-red"    title="Red"></div>
+    <div class="rainbow-arch arch-orange" title="Orange"></div>
+    <div class="rainbow-arch arch-yellow" title="Yellow"></div>
+    <div class="rainbow-arch arch-green"  title="Green"></div>
+    <div class="rainbow-arch arch-blue"   title="Blue"></div>
+    <div class="rainbow-arch arch-purple" title="Purple"></div>
+  </div>
 
   <!-- Use Kaboom via CDN (ESM). Pin to a stable version to avoid breaking changes. -->
   <script src="https://unpkg.com/kaboom@3000.0.1/dist/kaboom.js"></script>
@@ -105,12 +163,12 @@
 
     // Load all monster sprites from img/
     const monsters = [
-      { key: 'blue',   path: 'img/blue-monster.png',   label: 'Blue' },
-      { key: 'green',  path: 'img/green-monster.png',  label: 'Green' },
-      { key: 'orange', path: 'img/orange-monster.png', label: 'Orange' },
-      { key: 'purple', path: 'img/purple-monster.png', label: 'Purple' },
       { key: 'red',    path: 'img/red-monster.png',    label: 'Red' },
+      { key: 'orange', path: 'img/orange-monster.png', label: 'Orange' },
       { key: 'yellow', path: 'img/yellow-monster.png', label: 'Yellow' },
+      { key: 'green',  path: 'img/green-monster.png',  label: 'Green' },
+      { key: 'blue',   path: 'img/blue-monster.png',   label: 'Blue' },
+      { key: 'purple', path: 'img/purple-monster.png', label: 'Purple' },
     ];
 
     for (const m of monsters) {
@@ -121,6 +179,8 @@
 
     // Menu scene: shows all monsters; click or use arrows+Enter to select
     scene('menu', () => {
+      const rainbow = document.querySelector('.rainbow-container');
+      if (rainbow) rainbow.style.display = 'block';
       buildGrid();
 
       // Title
@@ -132,12 +192,19 @@
         z(10),
       ]);
 
-      // Decorative player character (non-interactive) at a small, consistent size
+      // Decorative player character (non-interactive) positioned under the rainbow
+      function rainbowBottomY(offset = 24) {
+        const el = document.querySelector('.rainbow-container');
+        if (!el) return 110; // fallback if rainbow missing
+        const rect = el.getBoundingClientRect();
+        // rect.bottom is the pixel y from viewport top; Kaboom uses the same CSS pixel space
+        return Math.min(height() - 10, Math.max(80, rect.bottom + offset));
+      }
+
       const char = add([
         sprite('char-front'),
         anchor('center'),
-        // Place at the top center in menu
-        pos(width() / 2, 110),
+        pos(width() / 2, rainbowBottomY()),
         z(5),
         opacity(0.95),
       ]);
@@ -280,7 +347,7 @@
         const startY = height() / 2 - paddingY / 2;
 
         title.pos = vec2(width() / 2, 48);
-        char.pos = vec2(width() / 2, 110);
+        char.pos = vec2(width() / 2, rainbowBottomY());
         help.pos = vec2(width() / 2, height() - 32);
 
         items.forEach((item, i) => {
@@ -304,6 +371,8 @@
 
     // Empty level scene for each monster
     scene('level', (monsterKey) => {
+      const rainbow = document.querySelector('.rainbow-container');
+      if (rainbow) rainbow.style.display = 'none';
       buildGrid();
 
       // Show the monster centered
