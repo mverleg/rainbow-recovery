@@ -1,12 +1,18 @@
 
-On the main menu the monsters can be selected with arrow keys, but ENTER key does not open the level.
+Check if there are more cases where kanoomjs features can be used
 
-The first time loading the page, the character appears far too large. Only after reloading does it become small.
+In the red level, Player has to go all the way to the right to reach red monster.
 
-Make the red level smaller, 70x25 is enough. Change the obstacles to be more dynamic.
+Red monster takes 3x3 cells
 
-Player always starts at the left top cornder (inside the wall).
+Red monster walks several cells every few seconds (it does not jumps), but stays within 15 steps of the bottom left.
 
-Put the red monster near the 'end' of the level (right bottom).
+Dynamic obstacle blocks are entering walls. They should bounce at grid boundary.
 
-Red monster walks around it's corner occasionally.
+The player starts with 3 lives, indicated by hearts on the screen.
+If the player gets 'hurt' a life is lost. The player image blinks for 1 second and the player cannot be hurt during this 1 second.
+If the player gets caught between a block and a wall or another block, the player gets hurt (lose 1 life)
+If all lives are lost, a message is shown that they lost. After 1 second, any key can be pressed to return to the menu.
+On this level-over screen, show "Thanks for playing Rainbow Recovery!" and next line smaller "Dedicated to Leo and Benni"
+
+

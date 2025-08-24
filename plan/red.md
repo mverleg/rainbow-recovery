@@ -12,8 +12,7 @@ Red monster (red-monster.png)
 * The red balls that the red monster shoots disappear if they hit a wall or dynamic obstacle.
 * If they hit the player, the player gets hurt (loses 1 life)
 * Balls stop shooting when the monster dies
-
-It only shoots right, left, up or down, whichever one is closest to player direction.
+* It only shoots right, left, up or down, whichever one is closest to player direction.
 
 There are dynamic obstacle blocks.
 * They move predictably left-right or up-down. They always only turn around when reaching a wall.
