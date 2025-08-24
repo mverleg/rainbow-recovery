@@ -1,4 +1,4 @@
-import { monsters, buildGrid, state } from './shared.js';
+import { monsters, buildGrid, updateGrid, state } from './shared.js';
 
 // Menu scene: shows all monsters; click or use arrows+Enter to select
 scene('menu', () => {
@@ -16,7 +16,7 @@ scene('menu', () => {
   ]);
 
   // Decorative player character (non-interactive) positioned under the rainbow
-  function rainbowBottomY(offset = 24) {
+  function rainbowBottomY(offset = 48) {
     const el = document.querySelector('.rainbow-container');
     if (!el) return 110; // fallback if rainbow missing
     const rect = el.getBoundingClientRect();
@@ -40,19 +40,22 @@ scene('menu', () => {
   const cols = 3;
   // Target maximum sprite size for uniform appearance (in pixels)
   const spriteMax = 150;
-  // Cell padding should be large enough to accommodate enlarged selection (1.2x)
+  // Horizontal spacing between columns
   const paddingX = spriteMax + 100;
-  const paddingY = spriteMax + 200; // increased vertical spacing between player and monsters
+  // Vertical gaps (separate):
+  const topGap = spriteMax + 220;  // gap between char and first monster row (increased)
+  const rowGap = spriteMax + 120;  // gap between monster rows (decreased vs previous)
   const startX = width() / 2 - ((cols - 1) * paddingX) / 2;
-  const startY = height() / 2 - paddingY / 2;
+  // First row Y will be computed from char position below
 
   const items = []; const labels = [];
 
+  const firstRowY = char.pos.y + topGap;
   monsters.forEach((m, i) => {
     const col = i % cols;
     const row = Math.floor(i / cols);
     const x = startX + col * paddingX;
-    const y = startY + row * paddingY;
+    const y = firstRowY + row * rowGap;
 
     const item = add([
       sprite(m.key),
@@ -167,19 +170,19 @@ scene('menu', () => {
   function relayoutMenu() {
     // recompute layout metrics
     const paddingX = spriteMax + 100;
-    const paddingY = spriteMax + 200; // increased vertical spacing between player and monsters
     const startX = width() / 2 - ((cols - 1) * paddingX) / 2;
-    const startY = height() / 2 - paddingY / 2;
 
     title.pos = vec2(width() / 2, 48);
     char.pos = vec2(width() / 2, rainbowBottomY());
     help.pos = vec2(width() / 2, height() - 32);
 
+    const firstRowY = char.pos.y + topGap;
+
     items.forEach((item, i) => {
       const col = i % cols;
       const row = Math.floor(i / cols);
       const x = startX + col * paddingX;
-      const y = startY + row * paddingY;
+      const y = firstRowY + row * rowGap;
       item.pos = vec2(x, y);
       if (item.menuLabel) {
         item.menuLabel.pos = vec2(x, y + spriteMax / 2 + 24);
@@ -189,6 +192,11 @@ scene('menu', () => {
 
   // Register relayout for this scene
   state.currentRelayout = relayoutMenu;
+
+  // Keep grid updated on menu as well
+  onUpdate(() => {
+    try { updateGrid(camPos()); } catch (e) { /* ignore before scene ready */ }
+  });
 
   // Do an initial relayout in case of early size changes
   relayoutMenu();

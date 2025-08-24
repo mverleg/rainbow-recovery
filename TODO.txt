@@ -1,5 +1,14 @@
 
-Increase the spacing between rainbow and char, and between char and monsters.
-Decrease the spacing between first and second row of monsters.
-When pressing enter in the menu, go to the level of the selected monster.
+If the player stands still for 1 second, switch back to char-front image.
+
+Find a good way to store the level's objects with kaboomjs engine.
+Put some blocks in the level that the player cannot move through (on grid cells).
+Put an edge around the level. Make the level about 100 cells wide by 30 cells high.
+
+---
+
+On the main menu the monsters can be selected with arrow keys, but ENTER key does not open the level.
+
+The first time loading the page, the character appears far too large. Only after reloading does it become small.
+
 

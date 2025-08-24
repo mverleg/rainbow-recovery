@@ -35,7 +35,65 @@ scene('level', (monsterKey) => {
 
   // --- RED LEVEL IMPLEMENTATION ---
 
-  // Infinite world: we no longer define finite world metrics or borders.
+  // Finite level metrics
+  const LEVEL_W = 100; // cells
+  const LEVEL_H = 30;  // cells
+
+  // Data-driven map and legend
+  const LEGEND = {
+    '#': { type: 'wall' },
+    '.': { type: 'empty' },
+  };
+
+  // Build a simple map with a solid border and some interior blocks
+  const map = [];
+  for (let y = 0; y < LEVEL_H; y++) {
+    let row = '';
+    for (let x = 0; x < LEVEL_W; x++) {
+      const border = (x === 0 || y === 0 || x === LEVEL_W - 1 || y === LEVEL_H - 1);
+      let ch = border ? '#' : '.';
+      // Add some interior pillars and bars
+      if (!border) {
+        // Vertical pillars every 12 columns between y=5..(H-6)
+        if ((x % 12 === 6) && y >= 5 && y <= LEVEL_H - 6) ch = '#';
+        // Horizontal bars every 7 rows between x=15..(W-16)
+        if ((y % 7 === 3) && x >= 15 && x <= LEVEL_W - 16) ch = '#';
+      }
+      row += ch;
+    }
+    map.push(row);
+  }
+
+  function cellToWorld(cx, cy) {
+    return vec2((cx + 0.5) * GRID, (cy + 0.5) * GRID);
+  }
+  function worldToCell(p) {
+    return vec2(Math.floor(p.x / GRID), Math.floor(p.y / GRID));
+  }
+  function inBounds(cx, cy) {
+    return cx >= 0 && cy >= 0 && cx < LEVEL_W && cy < LEVEL_H;
+  }
+  function isSolidCell(cx, cy) {
+    if (!inBounds(cx, cy)) return true; // out of bounds is solid
+    const ch = map[cy][cx];
+    return LEGEND[ch]?.type === 'wall';
+  }
+
+  // Render map tiles (walls only for now)
+  for (let y = 0; y < LEVEL_H; y++) {
+    for (let x = 0; x < LEVEL_W; x++) {
+      if (isSolidCell(x, y)) {
+        add([
+          rect(GRID * 0.98, GRID * 0.98),
+          anchor('center'),
+          pos(cellToWorld(x, y)),
+          color(120, 120, 140),
+          z(1),
+          area(),
+        ]);
+      }
+    }
+  }
 
   // Helpers
   function gridCenter(p) {
@@ -84,6 +142,7 @@ scene('level', (monsterKey) => {
       target: vec2(0, 0),
       dir: 'down',
       nextDir: null, // queue a direction pressed while moving
+      lastActiveTime: time(),
     },
   ]);
 
@@ -105,11 +164,20 @@ scene('level', (monsterKey) => {
     if (v.x === 0 && v.y === 0) return;
     // Always move from snapped center to the adjacent center
     const from = gridCenter(player.pos);
+    const fromCell = worldToCell(from);
+    const nextCell = vec2(fromCell.x + v.x, fromCell.y + v.y);
+    if (isSolidCell(nextCell.x, nextCell.y)) {
+      // Blocked: don't move, but update facing
+      player.dir = d;
+      setSpriteForDir(d);
+      return;
+    }
     const to = vec2(from.x + v.x * GRID, from.y + v.y * GRID);
     player.pos = from; // eliminate drift
     player.target = to;
     player.dir = d;
     player.moving = true;
+    player.lastActiveTime = time();
     setSpriteForDir(d);
   }
 
@@ -141,17 +209,23 @@ scene('level', (monsterKey) => {
   for (const [k, alt] of keyMap) {
     onKeyPress(k, () => {
       player.nextDir = k;
+      player.lastActiveTime = time();
       if (!player.moving) startMove(k);
     });
     onKeyPress(alt, () => {
       player.nextDir = k;
+      player.lastActiveTime = time();
       if (!player.moving) startMove(k);
     });
   }
 
   // Movement update
   onUpdate(() => {
+    const anyKeyDown = isKeyDown('up') || isKeyDown('down') || isKeyDown('left') || isKeyDown('right')
+      || isKeyDown('w') || isKeyDown('a') || isKeyDown('s') || isKeyDown('d');
+
     if (player.moving) {
+      player.lastActiveTime = time();
       const to = player.target;
       const delta = to.sub(player.pos);
       const dist = delta.len();
@@ -173,6 +247,15 @@ scene('level', (monsterKey) => {
       }
     } else {
       // Idle at grid center: check held keys to start moving
+      if (anyKeyDown) {
+        player.lastActiveTime = time();
+      } else {
+        if (time() - player.lastActiveTime >= 1) {
+          // Switch back to front-facing sprite when idle for 1s
+          player.use(sprite('char-front'));
+          player.flipX = false;
+        }
+      }
       handleQueuedOrHeld();
     }
   });
@@ -194,6 +277,17 @@ scene('level', (monsterKey) => {
     if (screenX > deadR) newCamX = player.pos.x + w / 2 - deadR;
     if (screenY < deadT) newCamY = player.pos.y + h / 2 - deadT;
     if (screenY > deadB) newCamY = player.pos.y + h / 2 - deadB;
+
+    // Clamp camera inside level bounds
+    const minCamX = GRID * 0.5;
+    const maxCamX = LEVEL_W * GRID - GRID * 0.5;
+    const minCamY = GRID * 0.5;
+    const maxCamY = LEVEL_H * GRID - GRID * 0.5;
+    const halfW = w / 2;
+    const halfH = h / 2;
+    newCamX = Math.min(Math.max(newCamX, minCamX + halfW), maxCamX - halfW);
+    newCamY = Math.min(Math.max(newCamY, minCamY + halfH), maxCamY - halfH);
+
     if (newCamX !== cam.x || newCamY !== cam.y) camPos(vec2(newCamX, newCamY));
 
     // Update the background grid to match camera
