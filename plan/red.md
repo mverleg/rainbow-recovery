@@ -6,9 +6,9 @@ Level layout
 * Player can see the red monster initially, but cannot reach it.
 
 Red monster (red-monster.png)
-* Takes 2x2 cells
-* Walks several cells every few seconds, but stays within 15 steps of the bottom left.
-* The red monster can shoot a round red ball. It only does so if the player is within 12 cells.
+* Takes 3x3 cells
+* Walks several cells every few seconds (not jumps), but stays within 15 steps of the bottom left.
+* The red monster can shoot a round red ball when it's not moving. It only does so if the player is within 12 cells.
 * The red balls that the red monster shoots disappear if they hit a wall or dynamic obstacle.
 * If they hit the player, the player gets hurt (loses 1 life)
 * Balls stop shooting when the monster dies

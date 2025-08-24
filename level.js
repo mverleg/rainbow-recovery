@@ -422,11 +422,11 @@ scene('level', (monsterKey) => {
     area(),
     { baseScale: 1, home: cellToWorld(redSpawnCell.x, redSpawnCell.y), nextMovement: time() + rand(2, 4), nextShot: time() + rand(0.5, 1) },
   ]);
-  // Size monster once
+  // Size monster once - should be 2x2 cells as per red.md
   redMonster.onUpdate(() => {
     if (!redMonster.__sized && redMonster.width > 0 && redMonster.height > 0) {
       const base = Math.max(redMonster.width, redMonster.height);
-      redMonster.baseScale = (GRID * 0.9) / base;
+      redMonster.baseScale = (GRID * 2) / base; // 2x2 cells instead of 0.9x0.9
       redMonster.scale = vec2(redMonster.baseScale);
       redMonster.__sized = true;
     }
@@ -460,18 +460,9 @@ scene('level', (monsterKey) => {
       // Check if target is within patrol radius and not solid
       const distFromHome = vec2(targetCell.x - homeCell.x, targetCell.y - homeCell.y).len();
       if (distFromHome <= PATROL_RADIUS && !isSolidCell(targetCell.x, targetCell.y)) {
-        // Move to target cell
+        // Move to target cell instantly (discrete grid movement, not smooth)
         const targetWorld = cellToWorld(targetCell.x, targetCell.y);
-        const delta = targetWorld.sub(redMonster.pos);
-        const dist = delta.len();
-        if (dist > 0.01) {
-          const stepPerFrame = RED_SPEED * dt();
-          if (stepPerFrame >= dist) {
-            redMonster.pos = targetWorld;
-          } else {
-            redMonster.pos = redMonster.pos.add(delta.unit().scale(stepPerFrame));
-          }
-        }
+        redMonster.pos = targetWorld;
       }
     }
 

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Red Level</title>
+    <style>
+        body { margin: 0; padding: 20px; background: #333; color: white; }
+        canvas { border: 1px solid white; }
+    </style>
+</head>
+<body>
+    <h2>Red Level Test - Check Monster Size and Movement</h2>
+    <p>Expected: Monster should be 2x2 grid cells and move in discrete grid steps</p>
+    <p>Current Issues: Monster is too small and moves smoothly instead of grid steps</p>
+    
+    <script type="module">
+        // Quick test to run the red level
+        import kaplay from "https://unpkg.com/kaplay@3001.0.0-alpha.20/dist/kaboom.mjs";
+        
+        const k = kaplay({
+            width: 800,
+            height: 600,
+            canvas: document.querySelector('canvas') || document.createElement('canvas')
+        });
+        
+        if (!document.querySelector('canvas')) {
+            document.body.appendChild(k.canvas);
+        }
+        
+        // Load sprites
+        k.loadSprite('red', './img/red-monster.png');
+        k.loadSprite('char-front', './img/char-front.png');
+        
+        k.scene('test', () => {
+            const GRID = 32;
+            
+            k.add([
+                k.text('Red Monster Size Test\nExpected: 2x2 cells (64x64px)\nCurrent: likely 1x1 cell', 
+                { size: 16 }),
+                k.pos(10, 10),
+                k.color(255, 255, 255)
+            ]);
+            
+            // Show expected size (2x2 cells)
+            k.add([
+                k.rect(GRID * 2, GRID * 2),
+                k.pos(100, 100),
+                k.outline(2, k.WHITE),
+                k.color(0, 0, 0, 0.3)
+            ]);
+            
+            k.add([
+                k.text('Expected\n2x2 cells', { size: 12 }),
+                k.pos(100, 70),
+                k.color(255, 255, 255)
+            ]);
+            
+            // Show current monster
+            const monster = k.add([
+                k.sprite('red'),
+                k.pos(300, 132),
+                k.anchor('center'),
+                k.scale(1)
+            ]);
+            
+            // Size it like current implementation
+            monster.onUpdate(() => {
+                if (!monster.__sized && monster.width > 0) {
+                    const base = Math.max(monster.width, monster.height);
+                    const scale = (GRID * 0.9) / base;
+                    monster.scale = k.vec2(scale);
+                    monster.__sized = true;
+                }
+            });
+            
+            k.add([
+                k.text('Current\n~1x1 cell', { size: 12 }),
+                k.pos(270, 70),
+                k.color(255, 255, 255)
+            ]);
+        });
+        
+        k.go('test');
+    </script>
+    <canvas></canvas>
+</body>
+</html>
