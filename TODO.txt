@@ -1,14 +1,7 @@
 
-The grid should scroll with movement, not jump. The world should be infinite.
+In the menu:
+Make the rainbow more gray-ish when not hovered
+Increase the space between player and monsters
 
-The character should stand on the grid center, not the intersections.
-
-Split the javascript into a separate file, and the css into another one.
-
-The player cannot move back into the grid,
-
-Change the game name and window title to Rainbow Recovery
-
-The movement arrow keys are wrong
-
-It should not allow diagonal movement
+In level red:
+Change the movement logic so that the character actually moves right when pressing right, etc

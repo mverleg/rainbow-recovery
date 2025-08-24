@@ -1,5 +1,5 @@
 
-# Rainbow game
+# Rainbow Recovery
 
 ## Run locally
 

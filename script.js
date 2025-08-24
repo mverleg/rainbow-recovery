@@ -223,37 +223,6 @@ scene('menu', () => {
 
   let selected = -1;
 
-  function updateSelection() {
-    // Selection visuals handled per-item in onUpdate combining selection and hover states.
-    // This function remains to keep keyboard navigation logic intact.
-  }
-
-  function clampIndex(i) {
-    const n = items.length;
-    return (i + n) % n;
-  }
-
-  function moveHorizontal(dir) {
-    selected = clampIndex(selected + dir);
-    updateSelection();
-  }
-
-  function moveVertical(dir) {
-    const n = items.length;
-    const cols = 3;
-    const rows = Math.ceil(n / cols);
-    const curCol = selected % cols;
-    const curRow = Math.floor(selected / cols);
-    let newRow = curRow + dir;
-    if (newRow < 0) newRow = rows - 1;
-    if (newRow >= rows) newRow = 0;
-    let newIndex = newRow * cols + curCol;
-    // If last row is shorter, clamp to last item
-    if (newIndex >= n) newIndex = n - 1;
-    selected = newIndex;
-    updateSelection();
-  }
-
   onKeyPress('left', () => moveHorizontal(-1));
   onKeyPress('right', () => moveHorizontal(1));
   onKeyPress('up', () => moveVertical(-1));
@@ -363,6 +332,7 @@ scene('level', (monsterKey) => {
       moving: false,
       target: vec2(0, 0),
       dir: 'down',
+      nextDir: null, // queue a direction pressed while moving
     },
   ]);
   // Scale player to roughly fit a grid cell
@@ -395,7 +365,11 @@ scene('level', (monsterKey) => {
   }
 
   function tryStartMove(dir) {
-    if (player.moving) return false;
+    if (player.moving) {
+      // Queue the latest desired direction to execute right after current step
+      player.nextDir = dir;
+      return false;
+    }
     const cur = snapToGridCenter(player.pos);
     let next = cur.clone();
     if (dir === 'left') next.x -= GRID;
@@ -408,12 +382,23 @@ scene('level', (monsterKey) => {
     return true;
   }
 
-  onKeyPress(['left', 'right', 'up', 'down', 'a', 'd', 'w', 's'], (k) => {
-    const dir = (k === 'a' || k === 'left') ? 'left'
-      : (k === 'd' || k === 'right') ? 'right'
-      : (k === 'w' || k === 'up') ? 'up' : 'down';
-    tryStartMove(dir);
-  });
+  // Use per-key handlers; when specifying keys, Kaboom's onKeyPress callbacks do not receive the key name.
+  function handlePress(dir) {
+    if (player.moving) {
+      // queue for after current cell
+      player.nextDir = dir;
+    } else {
+      tryStartMove(dir);
+    }
+  }
+  onKeyPress('left', () => handlePress('left'));
+  onKeyPress('a', () => handlePress('left'));
+  onKeyPress('right', () => handlePress('right'));
+  onKeyPress('d', () => handlePress('right'));
+  onKeyPress('up', () => handlePress('up'));
+  onKeyPress('w', () => handlePress('up'));
+  onKeyPress('down', () => handlePress('down'));
+  onKeyPress('s', () => handlePress('down'));
 
   // Continuous movement queueing if key held
   onUpdate(() => {
@@ -425,17 +410,29 @@ scene('level', (monsterKey) => {
       if (dist <= step) {
         player.pos = player.target.clone();
         player.moving = false;
+        // If a direction was queued (e.g., pressed while moving), execute it immediately
+        if (player.nextDir) {
+          const nd = player.nextDir;
+          player.nextDir = null;
+          tryStartMove(nd);
+        }
       } else {
         player.pos = player.pos.add(delta.unit().scale(step));
       }
     } else {
-      // Not moving: if a direction is held, start moving to next cell
-      let dirHeld = null;
-      if (isKeyDown('left') || isKeyDown('a')) dirHeld = 'left';
-      else if (isKeyDown('right') || isKeyDown('d')) dirHeld = 'right';
-      else if (isKeyDown('up') || isKeyDown('w')) dirHeld = 'up';
-      else if (isKeyDown('down') || isKeyDown('s')) dirHeld = 'down';
-      if (dirHeld) tryStartMove(dirHeld);
+      // Not moving: prefer any queued direction first, then fallback to held keys
+      if (player.nextDir) {
+        const nd = player.nextDir;
+        player.nextDir = null;
+        tryStartMove(nd);
+      } else {
+        let dirHeld = null;
+        if (isKeyDown('left') || isKeyDown('a')) dirHeld = 'left';
+        else if (isKeyDown('right') || isKeyDown('d')) dirHeld = 'right';
+        else if (isKeyDown('up') || isKeyDown('w')) dirHeld = 'up';
+        else if (isKeyDown('down') || isKeyDown('s')) dirHeld = 'down';
+        if (dirHeld) tryStartMove(dirHeld);
+      }
     }
 
     // Camera: keep player centered; infinite world (no clamping)
