@@ -1,14 +1,12 @@
 
-If the player stands still for 1 second, switch back to char-front image.
-
-Find a good way to store the level's objects with kaboomjs engine.
-Put some blocks in the level that the player cannot move through (on grid cells).
-Put an edge around the level. Make the level about 100 cells wide by 30 cells high.
-
----
-
 On the main menu the monsters can be selected with arrow keys, but ENTER key does not open the level.
 
 The first time loading the page, the character appears far too large. Only after reloading does it become small.
 
+Make the red level smaller, 70x25 is enough. Change the obstacles to be more dynamic.
 
+Player always starts at the left top cornder (inside the wall).
+
+Put the red monster near the 'end' of the level (right bottom).
+
+Red monster walks around it's corner occasionally.

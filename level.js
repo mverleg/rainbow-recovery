@@ -285,8 +285,18 @@ scene('level', (monsterKey) => {
     const maxCamY = LEVEL_H * GRID - GRID * 0.5;
     const halfW = w / 2;
     const halfH = h / 2;
-    newCamX = Math.min(Math.max(newCamX, minCamX + halfW), maxCamX - halfW);
-    newCamY = Math.min(Math.max(newCamY, minCamY + halfH), maxCamY - halfH);
+
+    // If viewport is larger than level dimension, center camera on that axis
+    if (w >= LEVEL_W * GRID) {
+      newCamX = (LEVEL_W * GRID) / 2;
+    } else {
+      newCamX = Math.min(Math.max(newCamX, minCamX + halfW), maxCamX - halfW);
+    }
+    if (h >= LEVEL_H * GRID) {
+      newCamY = (LEVEL_H * GRID) / 2;
+    } else {
+      newCamY = Math.min(Math.max(newCamY, minCamY + halfH), maxCamY - halfH);
+    }
 
     if (newCamX !== cam.x || newCamY !== cam.y) camPos(vec2(newCamX, newCamY));
 
