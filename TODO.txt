@@ -1,18 +1,10 @@
 
-Check if there are more cases where kanoomjs features can be used
+Small fixes to red level:
+- Heart symbols should be much bigger, about the same as a cell
+- Red monster has disappeared, bring it back
+- Blocks are still going halfway into walls before bouncing
 
-In the red level, Player has to go all the way to the right to reach red monster.
-
-Red monster takes 3x3 cells
-
-Red monster walks several cells every few seconds (it does not jumps), but stays within 15 steps of the bottom left.
-
-Dynamic obstacle blocks are entering walls. They should bounce at grid boundary.
-
-The player starts with 3 lives, indicated by hearts on the screen.
-If the player gets 'hurt' a life is lost. The player image blinks for 1 second and the player cannot be hurt during this 1 second.
-If the player gets caught between a block and a wall or another block, the player gets hurt (lose 1 life)
-If all lives are lost, a message is shown that they lost. After 1 second, any key can be pressed to return to the menu.
-On this level-over screen, show "Thanks for playing Rainbow Recovery!" and next line smaller "Dedicated to Leo and Benni"
-
+Big changes:
+Split level.js. Keep all the stuff about collisions, grids, scrolling, etc.
+Move all the walls and obstacles, and everything about the red monster, to red.js
 

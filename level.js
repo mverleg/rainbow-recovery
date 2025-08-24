@@ -147,22 +147,43 @@ scene('level', (monsterKey) => {
       if (m.axis === 'x') delta.x = m.dir * m.speed * dt(); else delta.y = m.dir * m.speed * dt();
       let newPos = m.pos.add(delta);
       
-      // Check if new position would hit a wall - turn around AT the wall, not after entering
+      // Check if new position would hit a wall - bounce at grid boundary
       const ncell = worldToCell(newPos);
-      if (isSolidCell(ncell.x, ncell.y)) {
+      if (isSolidCell(ncell.x, ncell.y) || ncell.x < 1 || ncell.y < 1 || ncell.x >= LEVEL_W - 1 || ncell.y >= LEVEL_H - 1) {
         m.dir *= -1;
         // Don't move this frame, just reverse direction
         continue;
       }
 
-      // Check if pushing player would cause player to go through wall
+      // Check if overlapping with player
       const playerDist = player.pos.sub(newPos).len();
       const overlapRange = GRID * 0.9;
       if (playerDist < overlapRange) {
         const newPlayerPos = player.pos.add(delta);
         const playerCell = worldToCell(newPlayerPos);
-        if (isSolidCell(playerCell.x, playerCell.y)) {
-          // Player would be pushed into wall, so obstacle turns around instead
+        
+        // Check if player would be pushed into wall or boundary
+        if (isSolidCell(playerCell.x, playerCell.y) || playerCell.x < 1 || playerCell.y < 1 || playerCell.x >= LEVEL_W - 1 || playerCell.y >= LEVEL_H - 1) {
+          // Player would be crushed - hurt them and turn obstacle around
+          hurtPlayer();
+          m.dir *= -1;
+          continue;
+        }
+        
+        // Check if player would be pushed into another obstacle
+        let crushedByAnotherObstacle = false;
+        for (const other of movers) {
+          if (other === m) continue;
+          const distToOther = newPlayerPos.sub(other.pos).len();
+          if (distToOther < GRID * 0.9) {
+            crushedByAnotherObstacle = true;
+            break;
+          }
+        }
+        
+        if (crushedByAnotherObstacle) {
+          // Player would be crushed between obstacles
+          hurtPlayer();
           m.dir *= -1;
           continue;
         } else {
@@ -412,8 +433,130 @@ scene('level', (monsterKey) => {
 
   onUpdate(applyCamera);
 
-  // Red monster at bottom-left, patrols within 15 cells, shoots red balls when player in range
-  const redSpawnCell = findEmptyNear(2, LEVEL_H - 3);
+  // Player lives system
+  let playerLives = 3;
+  let invulnerable = false;
+  let invulnerabilityEnd = 0;
+  let gameOver = false;
+
+  // Hearts display
+  const hearts = [];
+  function updateHeartsDisplay() {
+    // Remove existing hearts
+    hearts.forEach(heart => heart.destroy());
+    hearts.length = 0;
+    
+    // Add hearts for current lives
+    for (let i = 0; i < playerLives; i++) {
+      const heart = add([
+        text('♥', { size: 24 }),
+        pos(20 + i * 30, 20),
+        color(220, 50, 50),
+        z(100),
+        fixed(),
+      ]);
+      hearts.push(heart);
+    }
+  }
+  updateHeartsDisplay();
+
+  function hurtPlayer() {
+    if (invulnerable || gameOver) return;
+    
+    playerLives--;
+    updateHeartsDisplay();
+    
+    if (playerLives <= 0) {
+      gameOver = true;
+      showGameOverScreen();
+      return;
+    }
+    
+    // Start invulnerability and blinking
+    invulnerable = true;
+    invulnerabilityEnd = time() + 1.0; // 1 second invulnerability
+    
+    // Blinking effect
+    const originalOpacity = player.opacity || 1;
+    let blinkState = false;
+    const blinkInterval = 0.1;
+    let nextBlink = time() + blinkInterval;
+    
+    const blinkUpdate = () => {
+      if (time() >= invulnerabilityEnd) {
+        invulnerable = false;
+        player.opacity = originalOpacity;
+        return;
+      }
+      
+      if (time() >= nextBlink) {
+        blinkState = !blinkState;
+        player.opacity = blinkState ? 0.3 : originalOpacity;
+        nextBlink = time() + blinkInterval;
+      }
+    };
+    
+    player.onUpdate(blinkUpdate);
+  }
+
+  function showGameOverScreen() {
+    // Clear existing game elements
+    redMonster.destroy();
+    for (const ball of redBalls) ball.destroy();
+    redBalls.length = 0;
+    
+    add([
+      rect(width(), height()),
+      pos(0, 0),
+      color(0, 0, 0, 0.8),
+      z(200),
+      fixed(),
+    ]);
+    
+    add([
+      text('Game Over', { size: 48 }),
+      anchor('center'),
+      pos(width() / 2, height() / 2 - 80),
+      color(220, 50, 50),
+      z(201),
+      fixed(),
+    ]);
+    
+    add([
+      text('Thanks for playing Rainbow Recovery!', { size: 24 }),
+      anchor('center'),
+      pos(width() / 2, height() / 2 - 20),
+      color(255, 255, 255),
+      z(201),
+      fixed(),
+    ]);
+    
+    add([
+      text('Dedicated to Leo and Benni', { size: 18 }),
+      anchor('center'),
+      pos(width() / 2, height() / 2 + 20),
+      color(200, 200, 200),
+      z(201),
+      fixed(),
+    ]);
+    
+    add([
+      text('Press any key to return to menu', { size: 16 }),
+      anchor('center'),
+      pos(width() / 2, height() / 2 + 60),
+      color(150, 150, 150),
+      z(201),
+      fixed(),
+    ]);
+    
+    // Wait 1 second then allow any key to return to menu
+    wait(1, () => {
+      onKeyPress(() => go('menu'));
+    });
+  }
+
+  // Red monster at bottom-right corner, patrols within 15 cells, shoots red balls when player in range
+  const redSpawnCell = findEmptyNear(LEVEL_W - 3, LEVEL_H - 3);
   const redMonster = add([
     sprite('red'),
     anchor('center'),
@@ -422,11 +565,11 @@ scene('level', (monsterKey) => {
     area(),
     { baseScale: 1, home: cellToWorld(redSpawnCell.x, redSpawnCell.y), nextMovement: time() + rand(2, 4), nextShot: time() + rand(0.5, 1) },
   ]);
-  // Size monster once - should be 2x2 cells as per red.md
+  // Size monster once - should be 3x3 cells as per requirements
   redMonster.onUpdate(() => {
     if (!redMonster.__sized && redMonster.width > 0 && redMonster.height > 0) {
       const base = Math.max(redMonster.width, redMonster.height);
-      redMonster.baseScale = (GRID * 2) / base; // 2x2 cells instead of 0.9x0.9
+      redMonster.baseScale = (GRID * 3) / base; // 3x3 cells
       redMonster.scale = vec2(redMonster.baseScale);
       redMonster.__sized = true;
     }
@@ -503,7 +646,7 @@ scene('level', (monsterKey) => {
       }
     }
 
-      // Update red balls: move them and destroy on wall collision
+      // Update red balls: move them and destroy on wall collision or player hit
     for (let i = redBalls.length - 1; i >= 0; i--) {
       const ball = redBalls[i];
       if (!ball.exists()) {
@@ -512,6 +655,17 @@ scene('level', (monsterKey) => {
       }
       ball.pos = ball.pos.add(ball.velocity.scale(dt()));
       const ballCell = worldToCell(ball.pos);
+      
+      // Check collision with player
+      const playerDist = player.pos.sub(ball.pos).len();
+      if (playerDist < GRID * 0.6) {
+        hurtPlayer();
+        ball.destroy();
+        redBalls.splice(i, 1);
+        continue;
+      }
+      
+      // Check collision with walls
       if (isSolidCell(ballCell.x, ballCell.y)) {
         ball.destroy();
         redBalls.splice(i, 1);
