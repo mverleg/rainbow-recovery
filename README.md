@@ -1,6 +1,8 @@
 
 # Rainbow Recovery
 
+A small browser game made together with kids and AI.
+
 ## Run locally
 
 - Using Python 3 (built-in):
@@ -10,4 +12,4 @@
   
 - OR `serve` from `npm`
 
-Then open http://localhost:5173 in your browser.
+Then open http://localhost:3000 in your browser.
