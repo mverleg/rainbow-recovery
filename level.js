@@ -126,25 +126,53 @@ scene('level', (monsterKey) => {
   }
 
   onUpdate(() => {
+    // First pass: check for obstacle-to-obstacle collisions
+    for (let i = 0; i < movers.length; i++) {
+      for (let j = i + 1; j < movers.length; j++) {
+        const m1 = movers[i];
+        const m2 = movers[j];
+        const dist = m1.pos.sub(m2.pos).len();
+        const collisionRange = GRID * 0.9; // Both obstacles are roughly this size
+        if (dist < collisionRange) {
+          // They're colliding, reverse both directions
+          m1.dir *= -1;
+          m2.dir *= -1;
+        }
+      }
+    }
+
+    // Second pass: update positions with wall and player collision checks
     for (const m of movers) {
-      const prev = m.pos.clone();
       const delta = vec2(0, 0);
       if (m.axis === 'x') delta.x = m.dir * m.speed * dt(); else delta.y = m.dir * m.speed * dt();
       let newPos = m.pos.add(delta);
-      // Predict next cell; if solid, bounce and recompute newPos
+      
+      // Check if new position would hit a wall - turn around AT the wall, not after entering
       const ncell = worldToCell(newPos);
       if (isSolidCell(ncell.x, ncell.y)) {
         m.dir *= -1;
-        if (m.axis === 'x') delta.x = m.dir * m.speed * dt(); else delta.y = m.dir * m.speed * dt();
-        newPos = m.pos.add(delta);
+        // Don't move this frame, just reverse direction
+        continue;
       }
-      m.pos = newPos;
-      // Push player out of the way if overlapping: move player by same delta if intersecting
-      const playerDist = player.pos.sub(m.pos).len();
-      const overlapRange = GRID * 0.9; // approximate square overlap radius
+
+      // Check if pushing player would cause player to go through wall
+      const playerDist = player.pos.sub(newPos).len();
+      const overlapRange = GRID * 0.9;
       if (playerDist < overlapRange) {
-        player.pos = player.pos.add(delta);
+        const newPlayerPos = player.pos.add(delta);
+        const playerCell = worldToCell(newPlayerPos);
+        if (isSolidCell(playerCell.x, playerCell.y)) {
+          // Player would be pushed into wall, so obstacle turns around instead
+          m.dir *= -1;
+          continue;
+        } else {
+          // Safe to push player
+          player.pos = newPlayerPos;
+        }
       }
+
+      // Safe to move obstacle
+      m.pos = newPos;
     }
   });
 
