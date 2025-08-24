@@ -111,7 +111,10 @@
       gridLines = [];
     }
 
-    function buildGrid(spacing = 64, lineW = 1, alpha = 0.6) {
+    // Use a 50% larger grid spacing everywhere (menu and levels)
+    const GRID = 96;
+
+    function buildGrid(spacing = GRID, lineW = 1, alpha = 0.6) {
       clearGrid();
       const w = width();
       const h = height();
@@ -174,8 +177,10 @@
     for (const m of monsters) {
       loadSprite(m.key, m.path);
     }
-    // Load player character (front) for decorative menu display
+    // Load player character sprites
     loadSprite('char-front', 'img/char-front.png');
+    loadSprite('char-back', 'img/char-back.png');
+    loadSprite('char-right', 'img/char-right.png');
 
     // Menu scene: shows all monsters; click or use arrows+Enter to select
     scene('menu', () => {
@@ -369,45 +374,175 @@
       relayoutMenu();
     });
 
-    // Empty level scene for each monster
+    // Level scene
     scene('level', (monsterKey) => {
       const rainbow = document.querySelector('.rainbow-container');
       if (rainbow) rainbow.style.display = 'none';
       buildGrid();
 
-      // Show the monster centered
-      const centerMonster = add([
-        sprite(monsterKey),
-        anchor('center'),
-        pos(width() / 2, height() / 2 - 32),
-        scale(2),
-      ]);
+      onKeyPress('escape', () => go('menu'));
 
-      const levelTitle = add([
-        text(`Level: ${monsterKey} (empty)`, { size: 24 }),
-        anchor('center'),
-        pos(width() / 2, 48),
-        color(0, 0, 0),
-      ]);
-
-      const backHint = add([
-        text('Press Esc to return to Menu', { size: 18 }),
-        anchor('center'),
-        pos(width() / 2, height() - 32),
-        color(40, 40, 40),
-      ]);
-
-      function relayoutLevel() {
-        centerMonster.pos = vec2(width() / 2, height() / 2 - 32);
-        levelTitle.pos = vec2(width() / 2, 48);
-        backHint.pos = vec2(width() / 2, height() - 32);
+      if (monsterKey !== 'red') {
+        // Show simple message for non-ready levels
+        add([
+          sprite(monsterKey),
+          anchor('center'),
+          pos(width() / 2, height() / 2 - 40),
+          scale(2),
+        ]);
+        add([
+          text('Level not ready', { size: 28 }),
+          anchor('center'),
+          pos(width() / 2, 52),
+          color(0, 0, 0),
+        ]);
+        add([
+          text('Press Esc or Click to return', { size: 18 }),
+          anchor('center'),
+          pos(width() / 2, height() - 32),
+          color(40, 40, 40),
+        ]);
+        onClick(() => go('menu'));
+        currentRelayout = () => {};
+        return;
       }
 
-      currentRelayout = relayoutLevel;
-      relayoutLevel();
+      // --- RED LEVEL IMPLEMENTATION ---
 
-      onKeyPress('escape', () => go('menu'));
-      onClick(() => go('menu'));
+      // World metrics
+      const WORLD_COLS = 100;
+      const WORLD_ROWS = 100;
+      const WORLD_W = WORLD_COLS * GRID;
+      const WORLD_H = WORLD_ROWS * GRID;
+
+      // Draw a subtle world border (optional)
+      const border = add([
+        rect(WORLD_W, WORLD_H),
+        anchor('topleft'),
+        pos(0, 0),
+        color(255, 255, 255),
+        opacity(0),
+        z(-2000),
+      ]);
+
+      // Player
+      const player = add([
+        sprite('char-front'),
+        pos(GRID * 2, GRID * 2),
+        anchor('center'),
+        area(),
+        z(10),
+        {
+          moving: false,
+          target: vec2(0, 0),
+          dir: 'down',
+        },
+      ]);
+      // Scale player to roughly fit a grid cell
+      onUpdate(() => {
+        if (!player.__sized) {
+          const base = Math.max(player.width, player.height);
+          const s = base > 0 ? (GRID * 0.95) / base : 1;
+          player.scale = vec2(s);
+          player.__sized = true;
+        }
+      });
+
+      function snapToGrid(v) {
+        return vec2(Math.round(v.x / GRID) * GRID, Math.round(v.y / GRID) * GRID);
+      }
+
+      function withinWorld(p) {
+        return p.x >= GRID * 0.5 && p.y >= GRID * 0.5 && p.x <= WORLD_W - GRID * 0.5 && p.y <= WORLD_H - GRID * 0.5;
+      }
+
+      const SPEED = GRID * 6; // pixels per second
+
+      function setDir(dir) {
+        if (dir === player.dir) return;
+        player.dir = dir;
+        if (dir === 'down') player.use(sprite('char-front'));
+        if (dir === 'up') player.use(sprite('char-back'));
+        if (dir === 'right') { player.use(sprite('char-right')); player.flipX = false; }
+        if (dir === 'left')  { player.use(sprite('char-right')); player.flipX = true; }
+      }
+
+      function tryStartMove(dir) {
+        if (player.moving) return false;
+        const cur = snapToGrid(player.pos);
+        let next = cur.clone();
+        if (dir === 'left') next.x -= GRID;
+        if (dir === 'right') next.x += GRID;
+        if (dir === 'up') next.y -= GRID;
+        if (dir === 'down') next.y += GRID;
+        if (!withinWorld(next)) return false;
+        player.target = next;
+        player.moving = true;
+        setDir(dir);
+        return true;
+      }
+
+      onKeyPress(['left', 'right', 'up', 'down', 'a', 'd', 'w', 's'], (k) => {
+        const dir = (k === 'a' || k === 'left') ? 'left'
+          : (k === 'd' || k === 'right') ? 'right'
+          : (k === 'w' || k === 'up') ? 'up' : 'down';
+        tryStartMove(dir);
+      });
+
+      // Continuous movement queueing if key held
+      onUpdate(() => {
+        // Smooth move toward target
+        if (player.moving) {
+          const delta = player.target.sub(player.pos);
+          const dist = delta.len();
+          const step = SPEED * dt();
+          if (dist <= step) {
+            player.pos = player.target.clone();
+            player.moving = false;
+          } else {
+            player.pos = player.pos.add(delta.unit().scale(step));
+          }
+        } else {
+          // Not moving: if a direction is held, start moving to next cell
+          let dirHeld = null;
+          if (isKeyDown('left') || isKeyDown('a')) dirHeld = 'left';
+          else if (isKeyDown('right') || isKeyDown('d')) dirHeld = 'right';
+          else if (isKeyDown('up') || isKeyDown('w')) dirHeld = 'up';
+          else if (isKeyDown('down') || isKeyDown('s')) dirHeld = 'down';
+          if (dirHeld) tryStartMove(dirHeld);
+        }
+
+        // Camera scroll with 40% margins
+        const marginX = width() * 0.4;
+        const marginY = height() * 0.4;
+        let cam = camPos();
+        const left = cam.x - width() / 2 + marginX;
+        const right = cam.x + width() / 2 - marginX;
+        const top = cam.y - height() / 2 + marginY;
+        const bottom = cam.y + height() / 2 - marginY;
+        let cx = cam.x;
+        let cy = cam.y;
+        if (player.pos.x < left) cx = player.pos.x - (width() / 2 - marginX);
+        if (player.pos.x > right) cx = player.pos.x + (width() / 2 - marginX);
+        if (player.pos.y < top) cy = player.pos.y - (height() / 2 - marginY);
+        if (player.pos.y > bottom) cy = player.pos.y + (height() / 2 - marginY);
+        // Clamp camera to world
+        cx = Math.max(width() / 2, Math.min(WORLD_W - width() / 2, cx));
+        cy = Math.max(height() / 2, Math.min(WORLD_H - height() / 2, cy));
+        camPos(cx, cy);
+      });
+
+      // Initial camera center near player
+      camPos(player.pos);
+
+      // Relayout handler (mostly grid is overlay; keep camera clamped)
+      currentRelayout = () => {
+        // Keep camera within world bounds on resize
+        const cam = camPos();
+        const cx = Math.max(width() / 2, Math.min(WORLD_W - width() / 2, cam.x));
+        const cy = Math.max(height() / 2, Math.min(WORLD_H - height() / 2, cam.y));
+        camPos(cx, cy);
+      };
     });
 
     // Start the game once assets are loaded

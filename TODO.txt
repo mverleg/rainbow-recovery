@@ -6,5 +6,15 @@ Each arch has an individual hover effect - when hovered the color goes from vagu
 Use the rainbow colors: purple, blue, green, yellow, orange, red (red being outer)
 
 
+Create the first level, red monster
 
-,
+It has a grid like the main page, but scale it up 50% (everywhere including main)
+
+The player character can move on the grid. It always stops on a grid square, but motion is smooth inbetween
+
+When player gets within 40% of an edge, the world scrolls
+
+The player character looks like char-front and is similar size as grid cell, using char-front and front-back for down and up. Use char-right for right, and mirror it for left.
+
+All other monsters should say "level not ready" when selected
+
