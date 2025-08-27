@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Errors</title>
+    <meta charset="utf-8">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        #error-output {
+            background: #ffeeee;
+            border: 1px solid #ff0000;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>Testing JavaScript Errors</h1>
+    <div id="error-output">Loading...</div>
+    <script src="https://unpkg.com/kaplay@3001.0.0/dist/kaplay.js"></script>
+    <script type="module">
+        // Capture console errors
+        const errorOutput = document.getElementById('error-output');
+        const originalError = console.error;
+        console.error = (...args) => {
+            errorOutput.textContent += 'ERROR: ' + args.join(' ') + '\n';
+            originalError.apply(console, args);
+        };
+
+        window.onerror = (msg, url, line, col, error) => {
+            errorOutput.textContent += `JavaScript Error: ${msg} at ${url}:${line}:${col}\n`;
+            if (error) errorOutput.textContent += `Stack: ${error.stack}\n`;
+            return false;
+        };
+
+        try {
+            // Initialize kaplay
+            kaplay({
+                width: 800,
+                height: 600,
+                scale: 1,
+                crisp: true,
+            });
+
+            // Load sprites
+            loadSprite('char-front', './img/char-front.png');
+            loadSprite('char-back', './img/char-back.png');
+            loadSprite('char-right', './img/char-right.png');
+            loadSprite('red-monster', './img/red-monster.png');
+
+            // Try to go to the red level which should trigger the errors
+            errorOutput.textContent += 'Attempting to load red level...\n';
+            go('level', 'red');
+        } catch (e) {
+            errorOutput.textContent += `Caught error: ${e.message}\n${e.stack}\n`;
+        }
+    </script>
+</body>
+</html>

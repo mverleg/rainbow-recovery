@@ -20,7 +20,7 @@ scene('menu', () => {
     const el = document.querySelector('.rainbow-container');
     if (!el) return 110; // fallback if rainbow missing
     const rect = el.getBoundingClientRect();
-    // rect.bottom is the pixel y from viewport top; Kaboom uses the same CSS pixel space
+    // rect.bottom is the pixel y from viewport top; Kaplay uses the same CSS pixel space
     return Math.min(height() - 10, Math.max(80, rect.bottom + offset));
   }
 

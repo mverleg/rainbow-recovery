@@ -2,7 +2,7 @@
 html, body {
   height: 100%;
   margin: 0;
-  background: #eee; /* light gray fallback background while Kaboom initializes */
+  background: #eee; /* light gray fallback background while Kaplay initializes */
 }
 #game {
   display: block; /* remove inline gap */

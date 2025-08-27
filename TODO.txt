@@ -1,10 +1,7 @@
 
-Small fixes to red level:
-- Heart symbols should be much bigger, about the same as a cell
-- Red monster has disappeared, bring it back
-- Blocks are still going halfway into walls before bouncing
+In the red level, findEmptyNear is undefined
 
-Big changes:
-Split level.js. Keep all the stuff about collisions, grids, scrolling, etc.
-Move all the walls and obstacles, and everything about the red monster, to red.js
-
+When game over window is shown, mouse press should also return to main (after 1 second)
+If a level is re-entered, everything is completely reset. Nothing is remembered from the last visit to the level.
+In the menu, update the rainbow so that the inner arches are the same thickness as the outer ones (they are narrower now)
+In the menu, the mouse cursor should only be in click mode when hovering a monster

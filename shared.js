@@ -1,5 +1,5 @@
 // Shared utilities and state for the game
-// Note: Kaboom is loaded globally via CDN. Helpers like add(), sprite(), pos(), etc. are global.
+// Note: Kaplay is loaded globally via CDN. Helpers like add(), sprite(), pos(), etc. are global.
 
 // A mutable state object that scenes can update (e.g., to set relayout callback)
 export const state = {

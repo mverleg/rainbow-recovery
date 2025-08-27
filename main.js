@@ -1,5 +1,5 @@
-// Main entry: initialize Kaboom first, then dynamically import modules that register scenes.
-const k = kaboom({
+// Main entry: initialize Kaplay first, then dynamically import modules that register scenes.
+const k = kaplay({
   canvas: document.querySelector('#game'),
   width: window.innerWidth,
   height: window.innerHeight,
@@ -21,9 +21,9 @@ if (k && k.canvas) {
 }
 
 (async () => {
-  // Import shared utilities and state after Kaboom has initialized globals
+  // Import shared utilities and state after Kaplay has initialized globals
   const { state, buildGrid, updateGrid, monsters } = await import('./shared.js');
-  // Import scenes which call scene() so they see the Kaboom globals
+  // Import scenes which call scene() so they see the Kaplay globals
   await import('./menu.js');
   await import('./level.js');
 
@@ -59,5 +59,5 @@ if (k && k.canvas) {
   // Initial grid build (for first scene before any resize events)
   buildGrid();
 
-  console.log('Kaboom main initialized');
+  console.log('Kaplay main initialized');
 })();
