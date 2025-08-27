@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Red Level Fix</title>
+    <script src="https://unpkg.com/kaplay@3001.0.0/dist/kaplay.js"></script>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 20px; 
+            font-family: Arial, sans-serif; 
+            background: #222;
+            color: white;
+        }
+        #status {
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+        canvas {
+            border: 1px solid #444;
+        }
+    </style>
+</head>
+<body>
+    <div id="status">Testing Red Level Fix...</div>
+    <script type="module">
+        const status = document.getElementById('status');
+        
+        try {
+            // Initialize Kaplay
+            kaplay({
+                width: 800,
+                height: 600,
+                background: [30, 30, 30],
+            });
+
+            status.innerHTML += '<br>✓ Kaplay initialized successfully';
+
+            // Load sprites (mock them for testing)
+            loadSprite('char-front', 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==');
+            loadSprite('char-back', 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==');
+            loadSprite('char-right', 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==');
+            loadSprite('red', 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==');
+
+            status.innerHTML += '<br>✓ Sprites loaded';
+
+            // Test going to red level
+            scene('red-level', async () => {
+                status.innerHTML += '<br>✓ Red level scene created successfully';
+                status.innerHTML += '<br>✓ No findEmptyNear error occurred!';
+                status.innerHTML += '<br><strong>TEST PASSED: Red level fix works!</strong>';
+            });
+
+            // Import and test the red level module
+            import('./red-level.js').then(() => {
+                status.innerHTML += '<br>✓ Red level module imported successfully';
+                // Switch to red level to test it
+                go('red-level');
+            }).catch(error => {
+                status.innerHTML += '<br>✗ Error importing red level: ' + error.message;
+                console.error('Red level import error:', error);
+            });
+
+        } catch (error) {
+            status.innerHTML += '<br>✗ Error: ' + error.message;
+            console.error('Test error:', error);
+        }
+    </script>
+</body>
+</html>

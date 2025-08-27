@@ -79,35 +79,43 @@ scene('red-level', () => {
     });
   }
 
-  // First create a temporary red level to get isSolidCell
-  const tempRedLevel = createRedLevel(LEVEL_W, LEVEL_H, cellToWorld, worldToCell, inBounds, null, null, null);
-  const { isSolidCell } = tempRedLevel;
+  // Define findEmptyNear first using a simple solid check that matches the red level logic
+  function isSolidCellLocal(cx, cy) {
+    if (!inBounds(cx, cy)) return true; // out of bounds is solid
+    const border = (cx === 0 || cy === 0 || cx === LEVEL_W - 1 || cy === LEVEL_H - 1);
+    if (border) return true;
+    // Add some interior pillars and bars (matching red.js logic)
+    // Vertical pillars every 12 columns between y=5..(H-6)
+    if ((cx % 12 === 6) && cy >= 5 && cy <= LEVEL_H - 6) return true;
+    // Horizontal bars every 7 rows between x=15..(W-16)
+    if ((cy % 7 === 3) && cx >= 15 && cx <= LEVEL_W - 16) return true;
+    return false;
+  }
 
-  // Now define findEmptyNear using the correct isSolidCell
   function findEmptyNear(prefX, prefY, maxRadius = 10) {
-    if (!isSolidCell(prefX, prefY)) return vec2(prefX, prefY);
+    if (!isSolidCellLocal(prefX, prefY)) return vec2(prefX, prefY);
     for (let r = 1; r <= maxRadius; r++) {
       for (let dy = -r; dy <= r; dy++) {
         for (let dx = -r; dx <= r; dx++) {
           const cx = prefX + dx;
           const cy = prefY + dy;
           if (!inBounds(cx, cy)) continue;
-          if (!isSolidCell(cx, cy)) return vec2(cx, cy);
+          if (!isSolidCellLocal(cx, cy)) return vec2(cx, cy);
         }
       }
     }
     // Fallback: center of the map
     for (let y = 1; y < LEVEL_H - 1; y++) {
       for (let x = 1; x < LEVEL_W - 1; x++) {
-        if (!isSolidCell(x, y)) return vec2(x, y);
+        if (!isSolidCellLocal(x, y)) return vec2(x, y);
       }
     }
     return vec2(1, 1);
   }
 
-  // Create the actual red level with findEmptyNear properly passed
+  // Create the red level with findEmptyNear properly passed
   const redLevel = createRedLevel(LEVEL_W, LEVEL_H, cellToWorld, worldToCell, inBounds, findEmptyNear, hurtPlayer, null);
-  const { redMonster, redBalls } = redLevel;
+  const { redMonster, redBalls, isSolidCell } = redLevel;
 
   // Player
   const startCell = findEmptyNear(2, 2);

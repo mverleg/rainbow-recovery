@@ -1,12 +1,21 @@
 
-Put each level at a separate url, e.g. red level at /red/
-Do a page reload during the transition to ensure state is cleared
-Move the level-specific js but keep sharing all the rest (main.js, shared.js, level.js, etc)
+Make sure to use kaplay instead of kaboom
 
+Migrate test html files into tests directory
 
-In the red level, findEmptyNear is undefined
-In the menu, the mouse cursor should only be in click mode when hovering a monster
+There is still red.js and red-level.js, move that to red/ directory and deduplicate all red js into one file/
 
----
+In the main menu, hovering monsters with mouse does not show click cursor. It should show when hovering monsters but not at other times.
 
-Make usre to use kaplay instead of kaboomn
+Uncaught (in promise) Error: Failed to load image from "img/red-monster.png"
+    onerror asset.ts:159
+    kaplay asset.ts:158
+    Ct asset.ts:156
+    fromURL sprite.ts:160
+    from sprite.ts:127
+    Ot sprite.ts:228
+    <anonymous> red-main.js:47
+    async* red-main.js:63
+
+The red level immediately shows "Level Complete!" this should only happen at the end
+
