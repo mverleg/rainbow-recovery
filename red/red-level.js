@@ -1,6 +1,6 @@
 // Red level scene definition - adapted from level.js but red-specific
-import { GRID, state } from './shared.js';
-import { createRedLevel } from './red.js';
+import { GRID, state } from '../shared.js';
+import { createRedLevel, isSolidCellLocal } from './red.js';
 
 // Red level scene
 scene('red-level', () => {
@@ -79,45 +79,30 @@ scene('red-level', () => {
     });
   }
 
-  // Define findEmptyNear first using a simple solid check that matches the red level logic
-  function isSolidCellLocal(cx, cy) {
-    if (!inBounds(cx, cy)) return true; // out of bounds is solid
-    const border = (cx === 0 || cy === 0 || cx === LEVEL_W - 1 || cy === LEVEL_H - 1);
-    if (border) return true;
-    // Add some interior pillars and bars (matching red.js logic)
-    // Vertical pillars every 12 columns between y=5..(H-6)
-    if ((cx % 12 === 6) && cy >= 5 && cy <= LEVEL_H - 6) return true;
-    // Horizontal bars every 7 rows between x=15..(W-16)
-    if ((cy % 7 === 3) && cx >= 15 && cx <= LEVEL_W - 16) return true;
-    return false;
-  }
+  // Use the shared isSolidCellLocal function from red.js
 
   function findEmptyNear(prefX, prefY, maxRadius = 10) {
-    if (!isSolidCellLocal(prefX, prefY)) return vec2(prefX, prefY);
+    if (!isSolidCellLocal(prefX, prefY, LEVEL_W, LEVEL_H, inBounds)) return vec2(prefX, prefY);
     for (let r = 1; r <= maxRadius; r++) {
       for (let dy = -r; dy <= r; dy++) {
         for (let dx = -r; dx <= r; dx++) {
           const cx = prefX + dx;
           const cy = prefY + dy;
           if (!inBounds(cx, cy)) continue;
-          if (!isSolidCellLocal(cx, cy)) return vec2(cx, cy);
+          if (!isSolidCellLocal(cx, cy, LEVEL_W, LEVEL_H, inBounds)) return vec2(cx, cy);
         }
       }
     }
     // Fallback: center of the map
     for (let y = 1; y < LEVEL_H - 1; y++) {
       for (let x = 1; x < LEVEL_W - 1; x++) {
-        if (!isSolidCellLocal(x, y)) return vec2(x, y);
+        if (!isSolidCellLocal(x, y, LEVEL_W, LEVEL_H, inBounds)) return vec2(x, y);
       }
     }
     return vec2(1, 1);
   }
 
-  // Create the red level with findEmptyNear properly passed
-  const redLevel = createRedLevel(LEVEL_W, LEVEL_H, cellToWorld, worldToCell, inBounds, findEmptyNear, hurtPlayer, null);
-  const { redMonster, redBalls, isSolidCell } = redLevel;
-
-  // Player
+  // Player - create first so we can pass it to createRedLevel
   const startCell = findEmptyNear(2, 2);
   const startPos = cellToWorld(startCell.x, startCell.y);
   const player = add([
@@ -144,6 +129,10 @@ scene('red-level', () => {
       player.__sized = true;
     }
   });
+
+  // Create the red level with player reference
+  const redLevel = createRedLevel(LEVEL_W, LEVEL_H, cellToWorld, worldToCell, inBounds, findEmptyNear, hurtPlayer, player);
+  const { redMonster, redBalls, isSolidCell } = redLevel;
 
   // Functions that depend on player being declared
   function setSpriteForDir(d) {

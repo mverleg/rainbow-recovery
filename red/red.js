@@ -1,5 +1,17 @@
 // Red level implementation - walls, obstacles, red monster
-import { GRID, state } from './shared.js';
+import { GRID, state } from '../shared.js';
+
+export function isSolidCell(cx, cy, LEVEL_W, LEVEL_H, inBounds) {
+  if (!inBounds(cx, cy)) return true; // out of bounds is solid
+  const border = (cx === 0 || cy === 0 || cx === LEVEL_W - 1 || cy === LEVEL_H - 1);
+  if (border) return true;
+  // Add some interior pillars and bars
+  // Vertical pillars every 12 columns between y=5..(H-6)
+  if ((cx % 12 === 6) && cy >= 5 && cy <= LEVEL_H - 6) return true;
+  // Horizontal bars every 7 rows between x=15..(W-16)
+  if ((cy % 7 === 3) && cx >= 15 && cx <= LEVEL_W - 16) return true;
+  return false;
+}
 
 export function createRedLevel(LEVEL_W, LEVEL_H, cellToWorld, worldToCell, inBounds, findEmptyNear, hurtPlayer, player) {
   
@@ -28,7 +40,7 @@ export function createRedLevel(LEVEL_W, LEVEL_H, cellToWorld, worldToCell, inBou
     map.push(row);
   }
 
-  function isSolidCellLocal(cx, cy) {
+  function isSolidCell(cx, cy) {
     if (!inBounds(cx, cy)) return true; // out of bounds is solid
     const ch = map[cy][cx];
     return LEGEND[ch]?.type === 'wall';
@@ -37,7 +49,7 @@ export function createRedLevel(LEVEL_W, LEVEL_H, cellToWorld, worldToCell, inBou
   // Render map tiles (walls only for now)
   for (let y = 0; y < LEVEL_H; y++) {
     for (let x = 0; x < LEVEL_W; x++) {
-      if (isSolidCellLocal(x, y)) {
+      if (isSolidCell(x, y)) {
         add([
           rect(GRID * 0.98, GRID * 0.98),
           anchor('center'),
@@ -54,7 +66,7 @@ export function createRedLevel(LEVEL_W, LEVEL_H, cellToWorld, worldToCell, inBou
   // Dynamic obstacles: moving blocks that bounce between walls and push the player
   const movers = [];
   function addMover(cellX, cellY, axis, initialDir = 1, speedCellsPerSec = 2, tint = [180, 80, 80]) {
-    if (isSolidCellLocal(cellX, cellY)) return;
+    if (isSolidCell(cellX, cellY)) return;
     const posWorld = cellToWorld(cellX, cellY);
     const node = add([
       rect(GRID * 0.9, GRID * 0.9),
@@ -71,12 +83,12 @@ export function createRedLevel(LEVEL_W, LEVEL_H, cellToWorld, worldToCell, inBou
   // Place a few movers horizontally and vertically in safe corridors
   for (let y = 3; y < LEVEL_H - 3; y += 6) {
     for (let x = 5; x < LEVEL_W - 5; x += 16) {
-      if (!isSolidCellLocal(x, y)) addMover(x, y, 'x', 1, 2.2);
+      if (!isSolidCell(x, y)) addMover(x, y, 'x', 1, 2.2);
     }
   }
   for (let x = 8; x < LEVEL_W - 8; x += 14) {
     for (let y = 4; y < LEVEL_H - 4; y += 10) {
-      if (!isSolidCellLocal(x, y)) addMover(x, y, 'y', 1, 2.8, [80, 80, 180]);
+      if (!isSolidCell(x, y)) addMover(x, y, 'y', 1, 2.8, [80, 80, 180]);
     }
   }
 
@@ -107,16 +119,16 @@ export function createRedLevel(LEVEL_W, LEVEL_H, cellToWorld, worldToCell, inBou
       const currentCell = worldToCell(m.pos);
       
       // Check if we're moving towards a solid cell or boundary
-      const wouldHitWall = isSolidCellLocal(ncell.x, ncell.y) || ncell.x < 1 || ncell.y < 1 || ncell.x >= LEVEL_W - 1 || ncell.y >= LEVEL_H - 1;
+      const wouldHitWall = isSolidCell(ncell.x, ncell.y) || ncell.x < 1 || ncell.y < 1 || ncell.x >= LEVEL_W - 1 || ncell.y >= LEVEL_H - 1;
       
       // Also check if we're getting too close to wall boundaries (prevent halfway penetration)
       let tooCloseToWall = false;
       if (m.axis === 'x') {
         const edgeX = m.dir > 0 ? Math.ceil(newPos.x / GRID) : Math.floor(newPos.x / GRID);
-        tooCloseToWall = isSolidCellLocal(edgeX, ncell.y);
+        tooCloseToWall = isSolidCell(edgeX, ncell.y);
       } else {
         const edgeY = m.dir > 0 ? Math.ceil(newPos.y / GRID) : Math.floor(newPos.y / GRID);
-        tooCloseToWall = isSolidCellLocal(ncell.x, edgeY);
+        tooCloseToWall = isSolidCell(ncell.x, edgeY);
       }
       
       if (wouldHitWall || tooCloseToWall) {
@@ -134,7 +146,7 @@ export function createRedLevel(LEVEL_W, LEVEL_H, cellToWorld, worldToCell, inBou
           const playerCell = worldToCell(newPlayerPos);
           
           // Check if player would be pushed into wall or boundary
-          if (isSolidCellLocal(playerCell.x, playerCell.y) || playerCell.x < 1 || playerCell.y < 1 || playerCell.x >= LEVEL_W - 1 || playerCell.y >= LEVEL_H - 1) {
+          if (isSolidCell(playerCell.x, playerCell.y) || playerCell.x < 1 || playerCell.y < 1 || playerCell.x >= LEVEL_W - 1 || playerCell.y >= LEVEL_H - 1) {
             // Player would be crushed - hurt them and turn obstacle around
             if (hurtPlayer) hurtPlayer();
             m.dir *= -1;
@@ -216,7 +228,7 @@ export function createRedLevel(LEVEL_W, LEVEL_H, cellToWorld, worldToCell, inBou
       const targetCell = vec2(currentCell.x + dx, currentCell.y + dy);
       // Check if target is within patrol radius and not solid
       const distFromHome = vec2(targetCell.x - homeCell.x, targetCell.y - homeCell.y).len();
-      if (distFromHome <= PATROL_RADIUS && !isSolidCellLocal(targetCell.x, targetCell.y)) {
+      if (distFromHome <= PATROL_RADIUS && !isSolidCell(targetCell.x, targetCell.y)) {
         // Move to target cell instantly (discrete grid movement, not smooth)
         const targetWorld = cellToWorld(targetCell.x, targetCell.y);
         redMonster.pos = targetWorld;
@@ -282,7 +294,7 @@ export function createRedLevel(LEVEL_W, LEVEL_H, cellToWorld, worldToCell, inBou
       }
       
       // Check collision with walls
-      if (isSolidCellLocal(ballCell.x, ballCell.y)) {
+      if (isSolidCell(ballCell.x, ballCell.y)) {
         ball.destroy();
         redBalls.splice(i, 1);
       }
@@ -318,6 +330,6 @@ export function createRedLevel(LEVEL_W, LEVEL_H, cellToWorld, worldToCell, inBou
   return { 
     redMonster, 
     redBalls,
-    isSolidCell: isSolidCellLocal
+    isSolidCell: isSolidCell
   };
 }

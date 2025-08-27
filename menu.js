@@ -108,6 +108,16 @@ scene('menu', () => {
       if (hovered) mult = Math.max(mult, 1.1);
       item.scale = vec2((item.baseScale || 1) * mult);
       item.opacity = (isSelected || hovered) ? 1 : 0.9;
+      
+      // Update cursor style based on hover state
+      if (hovered) {
+        document.body.style.cursor = 'pointer';
+      } else if (!items.some(otherItem => {
+        const otherHovered = typeof otherItem.isHovering === 'function' ? otherItem.isHovering() : (typeof otherItem.isHovered === 'function' ? otherItem.isHovered() : false);
+        return otherHovered;
+      })) {
+        document.body.style.cursor = 'default';
+      }
     });
 
     items.push(item);

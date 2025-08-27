@@ -430,4 +430,9 @@ scene('level', (monsterKey) => {
     // No specific layout, but rebuild grid sizes and re-apply camera snap once
     updateGrid(camPos());
   };
+
+  // ESC to return to menu
+  onKeyPress('escape', () => {
+    go('menu');
+  });
 });

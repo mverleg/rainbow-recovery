@@ -24,7 +24,7 @@ if (k && k.canvas) {
   // Import shared utilities and state after Kaplay has initialized globals
   const { state, buildGrid, updateGrid, monsters } = await import('../shared.js');
   // Import red level specific code
-  await import('../red-level.js');
+  await import('./red-level.js');
 
   // Keep canvas sized to window on resize and rebuild the grid for current scene
   window.addEventListener('resize', () => {
@@ -44,7 +44,7 @@ if (k && k.canvas) {
   // Load only red monster and player sprites
   const redMonster = monsters.find(m => m.key === 'red');
   if (redMonster) {
-    loadSprite(redMonster.key, redMonster.path);
+    loadSprite(redMonster.key, '../' + redMonster.path);
   }
   loadSprite('char-front', '../img/char-front.png');
   loadSprite('char-back', '../img/char-back.png');
