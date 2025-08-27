@@ -1,7 +1,12 @@
 
-In the red level, findEmptyNear is undefined
+Put each level at a separate url, e.g. red level at /red/
+Do a page reload during the transition to ensure state is cleared
+Move the level-specific js but keep sharing all the rest (main.js, shared.js, level.js, etc)
 
-When game over window is shown, mouse press should also return to main (after 1 second)
-If a level is re-entered, everything is completely reset. Nothing is remembered from the last visit to the level.
-In the menu, update the rainbow so that the inner arches are the same thickness as the outer ones (they are narrower now)
+
+In the red level, findEmptyNear is undefined
 In the menu, the mouse cursor should only be in click mode when hovering a monster
+
+---
+
+Make usre to use kaplay instead of kaboomn

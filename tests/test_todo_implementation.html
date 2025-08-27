@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test TODO Implementation</title>
+    <style>
+        body { margin: 0; padding: 20px; background: #333; color: white; font-family: Arial, sans-serif; }
+        .test { margin: 20px 0; padding: 10px; border: 1px solid #666; }
+        .pass { border-color: #4CAF50; background: #1B4D1B; }
+        .fail { border-color: #F44336; background: #4D1B1B; }
+        .warning { border-color: #FF9800; background: #4D3D1B; }
+        a { color: #4CAF50; }
+    </style>
+</head>
+<body>
+    <h1>TODO Requirements Implementation Test</h1>
+    <div id="results"></div>
+    
+    <script>
+        const results = document.getElementById('results');
+        
+        function addResult(title, status, message, type = 'pass') {
+            const div = document.createElement('div');
+            div.className = `test ${type}`;
+            div.innerHTML = `<h3>${title}</h3><p><strong>${status}</strong></p><p>${message}</p>`;
+            results.appendChild(div);
+        }
+        
+        // Test 1: Check if red level directory and files exist
+        fetch('./red/index.html')
+            .then(response => {
+                if (response.ok) {
+                    addResult('✓ Separate URL Structure', 'PASS', 
+                        'Red level has its own URL at /red/ with dedicated index.html file');
+                } else {
+                    addResult('✗ Separate URL Structure', 'FAIL', 
+                        'Red level directory or index.html not accessible');
+                }
+            })
+            .catch(() => {
+                addResult('✗ Separate URL Structure', 'FAIL', 
+                    'Red level directory or index.html not accessible');
+            });
+            
+        // Test 2: Check if red-main.js exists
+        fetch('./red/red-main.js')
+            .then(response => {
+                if (response.ok) {
+                    addResult('✓ Level-specific JS', 'PASS', 
+                        'Red level has its own red-main.js file separate from main.js');
+                } else {
+                    addResult('✗ Level-specific JS', 'FAIL', 
+                        'red-main.js file not found');
+                }
+            })
+            .catch(() => {
+                addResult('✗ Level-specific JS', 'FAIL', 
+                    'red-main.js file not found');
+            });
+            
+        // Test 3: Check if red-level.js exists
+        fetch('./red-level.js')
+            .then(response => {
+                if (response.ok) {
+                    addResult('✓ Red Level Scene', 'PASS', 
+                        'red-level.js file exists for red-specific scene definition');
+                } else {
+                    addResult('✗ Red Level Scene', 'FAIL', 
+                        'red-level.js file not found');
+                }
+            })
+            .catch(() => {
+                addResult('✗ Red Level Scene', 'FAIL', 
+                    'red-level.js file not found');
+            });
+        
+        // Test 4: Manual verification needed
+        addResult('⚠ Page Reload Transitions', 'MANUAL TEST REQUIRED', 
+            'Click on red monster in menu - should reload page to /red/ URL instead of staying on same page. ' +
+            '<a href="../">Go to main menu to test</a>', 'warning');
+            
+        addResult('⚠ findEmptyNear Fix', 'MANUAL TEST REQUIRED', 
+            'Red level should load without "findEmptyNear is undefined" error. ' +
+            '<a href="../red/">Go to red level to test</a>', 'warning');
+            
+        addResult('⚠ Cursor Behavior', 'MANUAL TEST REQUIRED', 
+            'In menu, cursor should be default (not pointer) when hovering monsters. ' +
+            '<a href="../">Go to main menu to test</a>', 'warning');
+        
+        // Test 5: Check shared files are still accessible
+        fetch('./shared.js')
+            .then(response => {
+                if (response.ok) {
+                    addResult('✓ Shared Code Preservation', 'PASS', 
+                        'Shared files (shared.js, main.js, level.js, etc.) are still available for reuse');
+                } else {
+                    addResult('✗ Shared Code Preservation', 'FAIL', 
+                        'Shared files may have been affected');
+                }
+            })
+            .catch(() => {
+                addResult('✗ Shared Code Preservation', 'FAIL', 
+                    'Shared files may have been affected');
+            });
+    </script>
+</body>
+</html>

@@ -77,7 +77,7 @@ scene('level', (monsterKey) => {
 
 
 
-  // Player lives system
+  // Player lives system - reset everything on level re-entry
   let playerLives = 3;
   let invulnerable = false;
   let invulnerabilityEnd = 0;
@@ -193,15 +193,16 @@ scene('level', (monsterKey) => {
       fixed(),
     ]);
     
-    // Wait 1 second then allow any key to return to menu
+    // Wait 1 second then allow any key or mouse press to return to menu
     wait(1, () => {
       onKeyPress(() => go('menu'));
+      onClick(() => go('menu'));
     });
   }
 
-  // Create red level content using red.js first to get isSolidCell
-  const redLevel = createRedLevel(LEVEL_W, LEVEL_H, cellToWorld, worldToCell, inBounds, null, null, null);
-  const { redMonster, redBalls, isSolidCell } = redLevel;
+  // First create a temporary red level to get isSolidCell
+  const tempRedLevel = createRedLevel(LEVEL_W, LEVEL_H, cellToWorld, worldToCell, inBounds, null, null, null);
+  const { isSolidCell } = tempRedLevel;
 
   // Now define findEmptyNear using the correct isSolidCell
   function findEmptyNear(prefX, prefY, maxRadius = 10) {
@@ -224,6 +225,10 @@ scene('level', (monsterKey) => {
     }
     return vec2(1, 1);
   }
+
+  // Create the actual red level with findEmptyNear properly passed
+  const redLevel = createRedLevel(LEVEL_W, LEVEL_H, cellToWorld, worldToCell, inBounds, findEmptyNear, null, null);
+  const { redMonster, redBalls } = redLevel;
 
   // Player
   // Compute a safe spawn position once

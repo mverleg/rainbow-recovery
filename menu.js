@@ -67,7 +67,7 @@ scene('menu', () => {
       anchor('center'),
       pos(x, y),
       scale(1),
-      area({ cursor: 'pointer' }),
+      area(),
       { monsterKey: m.key, monsterLabel: m.label, baseScale: 1 },
     ]);
 
@@ -83,7 +83,11 @@ scene('menu', () => {
     item.menuLabel = label;
 
     item.onClick(() => {
-      go('level', m.key);
+      if (m.key === 'red') {
+        window.location.href = 'red/';
+      } else {
+        go('level', m.key);
+      }
     });
 
     // Ensure base sizing happens once when sprite dimensions are known
@@ -158,7 +162,11 @@ scene('menu', () => {
     }
     // Fallback to first item
     if (idx < 0) idx = 0;
-    go('level', monsters[idx].key);
+    if (monsters[idx].key === 'red') {
+      window.location.href = 'red/';
+    } else {
+      go('level', monsters[idx].key);
+    }
   });
 
   // Also allow clicking anywhere near the selected item with Enter hint
