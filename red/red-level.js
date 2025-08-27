@@ -131,7 +131,7 @@ scene('red-level', () => {
   });
 
   // Create the red level with player reference
-  const redLevel = createRedLevel(LEVEL_W, LEVEL_H, cellToWorld, worldToCell, inBounds, findEmptyNear, hurtPlayer, player);
+  const redLevel = createRedLevel(LEVEL_W, LEVEL_H, cellToWorld, worldToCell, inBounds, findEmptyNear, hurtPlayer, player, gameOver);
   const { redMonster, redBalls, isSolidCell } = redLevel;
 
   // Functions that depend on player being declared
@@ -223,13 +223,8 @@ scene('red-level', () => {
     camPos(player.pos);
   });
 
-  // Win condition: collect all red balls
-  onUpdate(() => {
-    const remaining = redBalls.filter(ball => !ball.collected);
-    if (remaining.length === 0) {
-      gameOver();
-    }
-  });
+  // Win condition is handled in red.js when player gets close to red monster
+  // Removed incorrect ball collection win condition - redBalls are projectiles, not collectibles
 
   // ESC to return to menu
   onKeyPress('escape', () => {

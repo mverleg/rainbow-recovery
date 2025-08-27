@@ -48,8 +48,8 @@ scene('menu', () => {
   // Horizontal spacing between columns
   const paddingX = spriteMax + 100;
   // Vertical gaps (separate) - responsive to screen height:
-  const baseTopGap = spriteMax + 220;
-  const baseRowGap = spriteMax + 120;
+  const baseTopGap = spriteMax + 80;  // Reduced from 220 to 80
+  const baseRowGap = spriteMax + 60;  // Reduced from 120 to 60
   // Adjust spacing for small screens - if screen height is insufficient, reduce gaps
   const minRequiredHeight = baseTopGap + (Math.ceil(monsters.length / cols) - 1) * baseRowGap + spriteMax + 100; // rough estimate
   const heightRatio = Math.min(1, height() / minRequiredHeight);
@@ -201,8 +201,8 @@ scene('menu', () => {
     const startX = width() / 2 - ((cols - 1) * paddingX) / 2;
     
     // Recalculate responsive spacing for current screen size
-    const baseTopGap = spriteMax + 220;
-    const baseRowGap = spriteMax + 120;
+    const baseTopGap = spriteMax + 80;  // Reduced from 220 to 80
+    const baseRowGap = spriteMax + 60;  // Reduced from 120 to 60
     const minRequiredHeight = baseTopGap + (Math.ceil(monsters.length / cols) - 1) * baseRowGap + spriteMax + 100;
     const heightRatio = Math.min(1, height() / minRequiredHeight);
     const currentTopGap = Math.max(spriteMax + 50, baseTopGap * heightRatio);

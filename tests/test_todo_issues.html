@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test TODO Issues</title>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 20px;
+            background: white;
+            font-family: Arial, sans-serif;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .issue {
+            background: #ffe6e6;
+            color: #cc0000;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+        }
+        .expected {
+            background: #e6ffe6;
+            color: #006600;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+        }
+        a {
+            display: inline-block;
+            margin: 10px;
+            padding: 10px 15px;
+            background: #007cba;
+            color: white;
+            text-decoration: none;
+            border-radius: 3px;
+        }
+        a:hover {
+            background: #005a8a;
+        }
+    </style>
+</head>
+<body>
+    <h1>TODO Issues Test</h1>
+    
+    <div class="test-section">
+        <h2>Issue 1: Menu Monster Visibility</h2>
+        <div class="issue">
+            <strong>Problem:</strong> The monsters are almost invisible outside the screen, only the top of first row is visible. Make it more compact.
+        </div>
+        <div class="expected">
+            <strong>Expected:</strong> All monsters should be visible within the screen with appropriate spacing.
+        </div>
+        <a href="../index.html">Test Menu Layout</a>
+    </div>
+
+    <div class="test-section">
+        <h2>Issue 2: Game Background</h2>
+        <div class="issue">
+            <strong>Problem:</strong> Make the area outside the game black background.
+        </div>
+        <div class="expected">
+            <strong>Expected:</strong> Game canvas should have black background outside the game area.
+        </div>
+        <a href="../index.html">Test Background</a>
+    </div>
+
+    <div class="test-section">
+        <h2>Issue 3: Red Level Completion</h2>
+        <div class="issue">
+            <strong>Problem:</strong> The red level ends immediately with "Level Complete!" It should be playable and this msg should only be visible after winning.
+        </div>
+        <div class="expected">
+            <strong>Expected:</strong> Red level should be playable and only show completion message when player actually wins.
+        </div>
+        <a href="../red/">Test Red Level</a>
+    </div>
+
+    <div class="test-section">
+        <h3>Test Instructions:</h3>
+        <ol>
+            <li>Click "Test Menu Layout" - check if monsters are visible and properly spaced</li>
+            <li>Click "Test Background" - check if area outside game has black background</li>
+            <li>Click "Test Red Level" - check if level is playable without immediate completion</li>
+        </ol>
+    </div>
+</body>
+</html>

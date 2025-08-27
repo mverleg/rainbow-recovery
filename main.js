@@ -4,7 +4,7 @@ const k = kaplay({
   canvas: canvas,
   width: canvas.clientWidth,
   height: canvas.clientHeight,
-  background: [230, 230, 230],
+  background: [0, 0, 0],  // Changed from gray [230, 230, 230] to black
   letterbox: true,
   global: true,
   pixelDensity: 1,

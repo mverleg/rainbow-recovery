@@ -16,7 +16,7 @@ export function isSolidCell(cx, cy, LEVEL_W, LEVEL_H, inBounds) {
 // Export the same function as isSolidCellLocal for compatibility
 export const isSolidCellLocal = isSolidCell;
 
-export function createRedLevel(LEVEL_W, LEVEL_H, cellToWorld, worldToCell, inBounds, findEmptyNear, hurtPlayer, player) {
+export function createRedLevel(LEVEL_W, LEVEL_H, cellToWorld, worldToCell, inBounds, findEmptyNear, hurtPlayer, player, gameOver) {
   
   // Data-driven map and legend
   const LEGEND = {
@@ -307,24 +307,12 @@ export function createRedLevel(LEVEL_W, LEVEL_H, cellToWorld, worldToCell, inBou
     if (player) {
       const playerToMonster = player.pos.sub(redMonster.pos).len();
       if (playerToMonster < GRID * 1.5) {
-        add([
-          text('You reached the Red Monster!', { size: 32 }),
-          anchor('center'),
-          pos(width() / 2, height() / 2 - 40),
-          color(220, 50, 50),
-          z(100),
-        ]);
-        add([
-          text('Press Esc to return to menu', { size: 18 }),
-          anchor('center'),
-          pos(width() / 2, height() / 2 + 20),
-          color(40, 40, 40),
-          z(100),
-        ]);
         // Disable further updates by removing the monster and balls
         redMonster.destroy();
         for (const ball of redBalls) ball.destroy();
         redBalls.length = 0;
+        // Call the game over function from red-level.js
+        if (gameOver) gameOver();
       }
     }
   });
