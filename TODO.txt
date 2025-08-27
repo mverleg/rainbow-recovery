@@ -1,10 +1,6 @@
 
-In the main menu, hovering monsters with mouse does not show click cursor. It should show when hovering monsters but not at other times.
+Menu: the monsters are almost invisible outside the screen, only the top fo first row is visible. Make it more compact.
 
-Red level tries to load “http://localhost:3000/red/shared.js” but it should be “http://localhost:3000/shared.js” (parent)
+Make the area outside the game black background.
 
-Pressing ESC in a level should bring us back to the menu
-
----
-
-The requested module 'http://localhost:3080/red/red.js' doesn't provide an export named: 'isSolidCellLocal'
+The red level ends immediately with "Level Complete!" It should be playable and this msg shuold only be visible after winning

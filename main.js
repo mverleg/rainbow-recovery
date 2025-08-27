@@ -1,8 +1,9 @@
 // Main entry: initialize Kaplay first, then dynamically import modules that register scenes.
+const canvas = document.querySelector('#game');
 const k = kaplay({
-  canvas: document.querySelector('#game'),
-  width: window.innerWidth,
-  height: window.innerHeight,
+  canvas: canvas,
+  width: canvas.clientWidth,
+  height: canvas.clientHeight,
   background: [230, 230, 230],
   letterbox: true,
   global: true,
@@ -30,10 +31,10 @@ if (k && k.canvas) {
   // Keep canvas sized to window on resize and rebuild the grid for current scene
   window.addEventListener('resize', () => {
     if (typeof resize === 'function') {
-      resize(window.innerWidth, window.innerHeight);
+      resize(canvas.clientWidth, canvas.clientHeight);
     } else if (k && k.canvas) {
-      k.canvas.width = window.innerWidth;
-      k.canvas.height = window.innerHeight;
+      k.canvas.width = canvas.clientWidth;
+      k.canvas.height = canvas.clientHeight;
     }
     buildGrid();
     if (typeof state.currentRelayout === 'function') {
@@ -59,5 +60,6 @@ if (k && k.canvas) {
   // Initial grid build (for first scene before any resize events)
   buildGrid();
 
+  console.log('Dedicated to Leo and Benni; thanks for playing!');
   console.log('Kaplay main initialized');
 })();

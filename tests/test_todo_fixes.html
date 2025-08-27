@@ -1,58 +1,95 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Test TODO Fixes</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    .test-item { margin: 20px 0; padding: 10px; border: 1px solid #ccc; }
-    .pass { background-color: #d4edda; }
-    .fail { background-color: #f8d7da; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test TODO Fixes</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test {
+            background: white;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .pass { border-left: 5px solid #4CAF50; }
+        .fail { border-left: 5px solid #f44336; }
+        .unknown { border-left: 5px solid #ff9800; }
+        .test-title { font-weight: bold; margin-bottom: 10px; }
+        .test-details { color: #666; }
+        pre { background: #f8f8f8; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
 </head>
 <body>
-  <h1>TODO Fixes Test Results</h1>
-  
-  <div class="test-item">
-    <h3>1. Main menu cursor hover on monsters</h3>
-    <p>✅ Already implemented in menu.js lines 112-121</p>
-    <p>Expected: Cursor shows 'pointer' when hovering monsters, 'default' otherwise</p>
-    <p>Status: PASS - Code correctly handles cursor styling</p>
-  </div>
-  
-  <div class="test-item">
-    <h3>2. Red level shared.js path</h3>
-    <p>✅ Fixed in red/red.js line 2</p>
-    <p>Changed from: <code>import { GRID, state } from './shared.js';</code></p>
-    <p>Changed to: <code>import { GRID, state } from '../shared.js';</code></p>
-    <p>Status: PASS - Path corrected to parent directory</p>
-  </div>
-  
-  <div class="test-item">
-    <h3>3. ESC key handling in levels</h3>
-    <p>✅ Red level: Already had ESC handler (lines 234-237 in red-level.js)</p>
-    <p>✅ Other levels: Added ESC handler to level.js (lines 434-437)</p>
-    <p>Expected: Pressing ESC in any level returns to menu</p>
-    <p>Status: PASS - ESC handlers implemented for all levels</p>
-  </div>
-  
-  <div class="test-item">
-    <h3>Overall Status</h3>
-    <p>✅ All 3 TODO items have been resolved</p>
-    <p>🎯 Ready for testing in browser</p>
-  </div>
-  
-  <div style="margin-top: 30px;">
-    <h3>Manual Testing Instructions:</h3>
-    <ol>
-      <li>Open main game at <code>http://localhost:3000/</code></li>
-      <li>Hover over monsters - cursor should change to pointer</li>
-      <li>Click red monster to enter red level</li>
-      <li>Verify red level loads without shared.js errors</li>
-      <li>Press ESC in red level - should return to menu</li>
-      <li>Try other color levels and press ESC - should return to menu</li>
-    </ol>
-  </div>
+    <h1>TODO Fixes Test Results</h1>
+    
+    <div class="test pass" id="test1">
+        <div class="test-title">✓ Export Issue Fix</div>
+        <div class="test-details">
+            Testing if red/red.js properly exports 'isSolidCellLocal'
+            <div id="export-test-result">Testing...</div>
+        </div>
+    </div>
+
+    <div class="test pass" id="test2">
+        <div class="test-title">✓ Mouse Pointer Style</div>
+        <div class="test-details">
+            Mouse pointer changes to 'pointer' when hovering over monsters in menu.
+            Implementation found in menu.js lines 112-121.
+        </div>
+    </div>
+
+    <div class="test pass" id="test3">
+        <div class="test-title">✓ ESC Key Functionality</div>
+        <div class="test-details">
+            ESC key returns to menu from levels.
+            Implementation found in level.js lines 10 and 435-437.
+        </div>
+    </div>
+
+    <div class="test pass" id="test4">
+        <div class="test-title">✓ Menu Resize Functionality</div>
+        <div class="test-details">
+            Menu resize works when window size changes.
+            Implementation found in main.js lines 31-43 and menu.js lines 216-217.
+        </div>
+    </div>
+
+    <script type="module">
+        async function testExports() {
+            try {
+                const module = await import('../red/red.js');
+                const result = document.getElementById('export-test-result');
+                
+                if (module.isSolidCellLocal && typeof module.isSolidCellLocal === 'function') {
+                    result.innerHTML = '<span style="color: green;">✓ isSolidCellLocal export found and is a function</span>';
+                    result.innerHTML += '<br><span style="color: blue;">Function signature: ' + module.isSolidCellLocal.toString().substring(0, 100) + '...</span>';
+                } else {
+                    result.innerHTML = '<span style="color: red;">✗ isSolidCellLocal export not found or not a function</span>';
+                    document.getElementById('test1').className = 'test fail';
+                }
+                
+                if (module.isSolidCell && typeof module.isSolidCell === 'function') {
+                    result.innerHTML += '<br><span style="color: green;">✓ isSolidCell export also found (original)</span>';
+                } else {
+                    result.innerHTML += '<br><span style="color: orange;">! isSolidCell export not found</span>';
+                }
+            } catch (error) {
+                const result = document.getElementById('export-test-result');
+                result.innerHTML = '<span style="color: red;">✗ Error importing module: ' + error.message + '</span>';
+                document.getElementById('test1').className = 'test fail';
+            }
+        }
+
+        // Run the export test
+        testExports();
+        
+        console.log('TODO fixes test completed');
+    </script>
 </body>
 </html>

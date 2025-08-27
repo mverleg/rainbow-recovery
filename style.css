@@ -1,13 +1,18 @@
-/* Make the canvas fill the whole window */
+/* Make the canvas fill the whole window with max size constraints */
 html, body {
   height: 100%;
   margin: 0;
-  background: #eee; /* light gray fallback background while Kaplay initializes */
+  background: #000; /* black background outside game area */
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 #game {
   display: block; /* remove inline gap */
-  width: 100vw;
-  height: 100vh;
+  /* Maximum tablet-friendly size: 1200x800px */
+  width: min(100vw, 1200px);
+  height: min(100vh, 800px);
+  background: #eee; /* light gray fallback background while Kaplay initializes */
 }
 /* Optional: hide overflow on mobile address bar changes */
 body { overflow: hidden; }

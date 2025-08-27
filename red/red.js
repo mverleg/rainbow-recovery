@@ -13,6 +13,9 @@ export function isSolidCell(cx, cy, LEVEL_W, LEVEL_H, inBounds) {
   return false;
 }
 
+// Export the same function as isSolidCellLocal for compatibility
+export const isSolidCellLocal = isSolidCell;
+
 export function createRedLevel(LEVEL_W, LEVEL_H, cellToWorld, worldToCell, inBounds, findEmptyNear, hurtPlayer, player) {
   
   // Data-driven map and legend

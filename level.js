@@ -1,8 +1,7 @@
 import { GRID, buildGrid, updateGrid, state } from './shared.js';
-import { createRedLevel } from './red.js';
 
 // Level scene
-scene('level', (monsterKey) => {
+scene('level', async (monsterKey) => {
   const rainbow = document.querySelector('.rainbow-container');
   if (rainbow) rainbow.style.display = 'none';
   buildGrid();
@@ -200,35 +199,46 @@ scene('level', (monsterKey) => {
     });
   }
 
-  // First create a temporary red level to get isSolidCell
-  const tempRedLevel = createRedLevel(LEVEL_W, LEVEL_H, cellToWorld, worldToCell, inBounds, null, null, null);
-  const { isSolidCell } = tempRedLevel;
+  // Red level specific code - only load red.js when needed
+  let isSolidCell, findEmptyNear, redMonster, redBalls;
+  
+  // Default fallback functions for non-red levels
+  if (monsterKey !== 'red') {
+    isSolidCell = () => false; // no walls for other levels
+    findEmptyNear = (prefX, prefY) => vec2(prefX, prefY); // any position is valid
+  } else {
+    const { createRedLevel } = await import('./red.js');
+    
+    // First create a temporary red level to get isSolidCell
+    const tempRedLevel = createRedLevel(LEVEL_W, LEVEL_H, cellToWorld, worldToCell, inBounds, null, null, null);
+    ({ isSolidCell } = tempRedLevel);
 
-  // Now define findEmptyNear using the correct isSolidCell
-  function findEmptyNear(prefX, prefY, maxRadius = 10) {
-    if (!isSolidCell(prefX, prefY)) return vec2(prefX, prefY);
-    for (let r = 1; r <= maxRadius; r++) {
-      for (let dy = -r; dy <= r; dy++) {
-        for (let dx = -r; dx <= r; dx++) {
-          const cx = prefX + dx;
-          const cy = prefY + dy;
-          if (!inBounds(cx, cy)) continue;
-          if (!isSolidCell(cx, cy)) return vec2(cx, cy);
+    // Now define findEmptyNear using the correct isSolidCell
+    findEmptyNear = function(prefX, prefY, maxRadius = 10) {
+      if (!isSolidCell(prefX, prefY)) return vec2(prefX, prefY);
+      for (let r = 1; r <= maxRadius; r++) {
+        for (let dy = -r; dy <= r; dy++) {
+          for (let dx = -r; dx <= r; dx++) {
+            const cx = prefX + dx;
+            const cy = prefY + dy;
+            if (!inBounds(cx, cy)) continue;
+            if (!isSolidCell(cx, cy)) return vec2(cx, cy);
+          }
         }
       }
-    }
-    // Fallback: center of the map
-    for (let y = 1; y < LEVEL_H - 1; y++) {
-      for (let x = 1; x < LEVEL_W - 1; x++) {
-        if (!isSolidCell(x, y)) return vec2(x, y);
+      // Fallback: center of the map
+      for (let y = 1; y < LEVEL_H - 1; y++) {
+        for (let x = 1; x < LEVEL_W - 1; x++) {
+          if (!isSolidCell(x, y)) return vec2(x, y);
+        }
       }
-    }
-    return vec2(1, 1);
-  }
+      return vec2(1, 1);
+    };
 
-  // Create the actual red level with findEmptyNear properly passed
-  const redLevel = createRedLevel(LEVEL_W, LEVEL_H, cellToWorld, worldToCell, inBounds, findEmptyNear, null, null);
-  const { redMonster, redBalls } = redLevel;
+    // Create the actual red level with findEmptyNear properly passed
+    const redLevel = createRedLevel(LEVEL_W, LEVEL_H, cellToWorld, worldToCell, inBounds, findEmptyNear, null, null);
+    ({ redMonster, redBalls } = redLevel);
+  }
 
   // Player
   // Compute a safe spawn position once
