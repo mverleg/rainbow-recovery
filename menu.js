@@ -3,7 +3,31 @@ import { monsters, buildGrid, updateGrid, state } from './shared.js';
 // Menu scene: shows all monsters; click or use arrows+Enter to select
 scene('menu', () => {
   const rainbow = document.querySelector('.rainbow-container');
-  if (rainbow) rainbow.style.display = 'block';
+  if (rainbow) {
+    rainbow.style.display = 'block';
+  }
+
+  // Match rainbow overlay size/position to the Kaplay canvas so it scales with window like the game
+  function layoutRainbow() {
+    const canvas = document.getElementById('game');
+    const rb = document.querySelector('.rainbow-container');
+    if (!canvas || !rb) return;
+    const rect = canvas.getBoundingClientRect();
+    // Position rainbow container aligned to canvas top-center
+    rb.style.position = 'absolute';
+    rb.style.top = `${Math.round(rect.top)}px`;
+    rb.style.left = `${Math.round(rect.left + rect.width / 2)}px`;
+    rb.style.transform = 'translateX(-50%)';
+    // Size rainbow a bit smaller than canvas width, keep arch aspect (height = width/2)
+    const rainbowScale = 0.7; // reduce overall rainbow size
+    const w = Math.round(rect.width * rainbowScale);
+    rb.style.width = `${w}px`;
+    rb.style.height = `${Math.round(w / 2)}px`;
+  }
+
+  layoutRainbow();
+  window.addEventListener('resize', layoutRainbow);
+
   buildGrid();
 
   // Title
@@ -16,12 +40,14 @@ scene('menu', () => {
   ]);
 
   // Decorative player character (non-interactive) positioned under the rainbow
-  function rainbowBottomY(offset = 5) {  // Reduced from 20 to 5 to move char up
+  function rainbowBottomY(offset) {
     const el = document.querySelector('.rainbow-container');
     if (!el) return 60; // fallback if rainbow missing, reduced from 80 to 60
     const rect = el.getBoundingClientRect();
+    // Place character just below the rainbow baseline by default to avoid overlap
+    const dynOffset = (typeof offset === 'number') ? offset : 20; // 20px below rainbow
     // rect.bottom is the pixel y from viewport top; Kaplay uses the same CSS pixel space
-    return Math.min(height() - 10, Math.max(50, rect.bottom + offset));  // reduced min from 60 to 50
+    return Math.min(height() - 10, Math.max(50, rect.bottom + dynOffset));  // reduced min from 60 to 50
   }
 
   const char = add([
