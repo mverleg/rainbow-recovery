@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Character Position Fix Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        #game {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+        .rainbow-container {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 30px;
+            background: linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet);
+            border-radius: 15px;
+            z-index: 100;
+        }
+        .test-info {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255,255,255,0.9);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 200;
+            max-width: 300px;
+        }
+        .position-guide {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: rgba(255,0,0,0.5);
+            z-index: 150;
+        }
+        #char-guide {
+            top: 80px; /* Expected char position area */
+        }
+        #monster-guide {
+            top: 200px; /* Expected first monster row */
+        }
+    </style>
+</head>
+<body>
+    <div class="test-info">
+        <strong>Testing Character Position Fix:</strong><br>
+        Issue: Character still overlaps with monsters<br>
+        Fix: Moved char up by reducing offset from 20px to 5px<br>
+        Expected: Clear separation between char and monsters<br>
+        Current screen: <span id="dimensions"></span><br>
+        Rainbow bottom: <span id="rainbow-pos"></span><br>
+        Char position: <span id="char-pos"></span><br>
+        First monster: <span id="monster-pos"></span>
+    </div>
+    <div class="rainbow-container"></div>
+    <div class="position-guide" id="char-guide" title="Expected char area"></div>
+    <div class="position-guide" id="monster-guide" title="Expected monster area"></div>
+    <canvas id="game"></canvas>
+    
+    <script src="https://unpkg.com/kaplay@3000/dist/kaplay.js"></script>
+    <script>
+        // Update dimensions and position display
+        function updateInfo() {
+            const canvas = document.querySelector('#game');
+            const rainbow = document.querySelector('.rainbow-container');
+            document.getElementById('dimensions').textContent = 
+                `${canvas.clientWidth}x${canvas.clientHeight}`;
+            
+            if (rainbow) {
+                const rect = rainbow.getBoundingClientRect();
+                document.getElementById('rainbow-pos').textContent = 
+                    `${Math.round(rect.bottom)}px`;
+            }
+        }
+        
+        // Monitor game object positions
+        let positionInterval;
+        function startPositionMonitoring() {
+            positionInterval = setInterval(() => {
+                if (window.k && window.k.get) {
+                    try {
+                        // Character position
+                        const chars = window.k.get('char-front');
+                        if (chars.length > 0) {
+                            const char = chars[0];
+                            document.getElementById('char-pos').textContent = 
+                                `${Math.round(char.pos.y)}px`;
+                        }
+                        
+                        // First monster position
+                        const monsters = window.k.get();
+                        const firstMonster = monsters.find(obj => 
+                            obj.monsterKey && obj.monsterKey !== undefined
+                        );
+                        if (firstMonster) {
+                            document.getElementById('monster-pos').textContent = 
+                                `${Math.round(firstMonster.pos.y)}px`;
+                        }
+                    } catch (e) {
+                        // ignore errors during scene transitions
+                    }
+                }
+            }, 200);
+        }
+        
+        updateInfo();
+        window.addEventListener('resize', updateInfo);
+        setTimeout(startPositionMonitoring, 1000);
+    </script>
+    <script type="module" src="../main.js"></script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Character Overlap Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        #game {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+        .rainbow-container {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 30px;
+            background: linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet);
+            border-radius: 15px;
+            z-index: 100;
+        }
+        .test-info {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255,255,255,0.9);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 200;
+            max-width: 300px;
+        }
+        .z-legend {
+            position: absolute;
+            top: 50px;
+            left: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 11px;
+            z-index: 200;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-info">
+        <strong>Testing Character Overlap:</strong><br>
+        Issue: Character appears on top of monsters<br>
+        Expected: Character should be behind monsters or properly layered<br>
+        Current screen: <span id="dimensions"></span>
+    </div>
+    <div class="z-legend">
+        <strong>Z-Index Layers:</strong><br>
+        Title: z(10)<br>
+        Character: z(5)<br>
+        Monsters: z(0) - default<br>
+        <span style="color: #ff6666;">Problem: Char z > Monster z</span>
+    </div>
+    <div class="rainbow-container"></div>
+    <canvas id="game"></canvas>
+    
+    <script src="https://unpkg.com/kaplay@3000/dist/kaplay.js"></script>
+    <script>
+        // Update dimensions display
+        function updateDimensions() {
+            const canvas = document.querySelector('#game');
+            document.getElementById('dimensions').textContent = 
+                `${canvas.clientWidth}x${canvas.clientHeight}`;
+        }
+        updateDimensions();
+        window.addEventListener('resize', updateDimensions);
+    </script>
+    <script type="module" src="../main.js"></script>
+</body>
+</html>

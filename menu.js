@@ -16,19 +16,19 @@ scene('menu', () => {
   ]);
 
   // Decorative player character (non-interactive) positioned under the rainbow
-  function rainbowBottomY(offset = 48) {
+  function rainbowBottomY(offset = 5) {  // Reduced from 20 to 5 to move char up
     const el = document.querySelector('.rainbow-container');
-    if (!el) return 110; // fallback if rainbow missing
+    if (!el) return 60; // fallback if rainbow missing, reduced from 80 to 60
     const rect = el.getBoundingClientRect();
     // rect.bottom is the pixel y from viewport top; Kaplay uses the same CSS pixel space
-    return Math.min(height() - 10, Math.max(80, rect.bottom + offset));
+    return Math.min(height() - 10, Math.max(50, rect.bottom + offset));  // reduced min from 60 to 50
   }
 
   const char = add([
     sprite('char-front'),
     anchor('center'),
     pos(width() / 2, rainbowBottomY()),
-    z(5),
+    z(1),
     opacity(0.95),
   ]);
   // Defer decorative character sizing until the sprite dimensions are ready
@@ -48,13 +48,20 @@ scene('menu', () => {
   // Horizontal spacing between columns
   const paddingX = spriteMax + 100;
   // Vertical gaps (separate) - responsive to screen height:
-  const baseTopGap = spriteMax + 80;  // Reduced from 220 to 80
-  const baseRowGap = spriteMax + 60;  // Reduced from 120 to 60
+  const baseTopGap = spriteMax + 40;  // Reduced from 80 to 40
+  const baseRowGap = spriteMax + 30;  // Reduced from 60 to 30
   // Adjust spacing for small screens - if screen height is insufficient, reduce gaps
-  const minRequiredHeight = baseTopGap + (Math.ceil(monsters.length / cols) - 1) * baseRowGap + spriteMax + 100; // rough estimate
-  const heightRatio = Math.min(1, height() / minRequiredHeight);
-  const topGap = Math.max(spriteMax + 50, baseTopGap * heightRatio);  // minimum 50px gap
-  const rowGap = Math.max(spriteMax + 30, baseRowGap * heightRatio);  // minimum 30px gap
+  // Account for: title(48+16), char position, topGap, monsters with labels, rowGaps, help text(32+16)
+  const titleSpace = 48 + 16; // title Y + some margin
+  const charSpace = 140; // target char size
+  const helpSpace = 32 + 16; // help text + margin
+  const labelSpace = 24; // space for labels below sprites
+  const rows = Math.ceil(monsters.length / cols);
+  const minRequiredHeight = titleSpace + charSpace + baseTopGap + (rows * (spriteMax + labelSpace)) + ((rows - 1) * baseRowGap) + helpSpace;
+  const availableHeight = height();
+  const heightRatio = Math.min(1, availableHeight / minRequiredHeight);
+  const topGap = Math.max(spriteMax + 30, baseTopGap * heightRatio);  // minimum 30px gap
+  const rowGap = Math.max(spriteMax + 20, baseRowGap * heightRatio);  // minimum 20px gap
   const startX = width() / 2 - ((cols - 1) * paddingX) / 2;
   // First row Y will be computed from char position below
 
@@ -201,12 +208,19 @@ scene('menu', () => {
     const startX = width() / 2 - ((cols - 1) * paddingX) / 2;
     
     // Recalculate responsive spacing for current screen size
-    const baseTopGap = spriteMax + 80;  // Reduced from 220 to 80
-    const baseRowGap = spriteMax + 60;  // Reduced from 120 to 60
-    const minRequiredHeight = baseTopGap + (Math.ceil(monsters.length / cols) - 1) * baseRowGap + spriteMax + 100;
-    const heightRatio = Math.min(1, height() / minRequiredHeight);
-    const currentTopGap = Math.max(spriteMax + 50, baseTopGap * heightRatio);
-    const currentRowGap = Math.max(spriteMax + 30, baseRowGap * heightRatio);
+    const baseTopGap = spriteMax + 40;  // Reduced from 80 to 40
+    const baseRowGap = spriteMax + 30;  // Reduced from 60 to 30
+    // Account for: title(48+16), char position, topGap, monsters with labels, rowGaps, help text(32+16)
+    const titleSpace = 48 + 16; // title Y + some margin
+    const charSpace = 140; // target char size
+    const helpSpace = 32 + 16; // help text + margin
+    const labelSpace = 24; // space for labels below sprites
+    const rows = Math.ceil(monsters.length / cols);
+    const minRequiredHeight = titleSpace + charSpace + baseTopGap + (rows * (spriteMax + labelSpace)) + ((rows - 1) * baseRowGap) + helpSpace;
+    const availableHeight = height();
+    const heightRatio = Math.min(1, availableHeight / minRequiredHeight);
+    const currentTopGap = Math.max(spriteMax + 30, baseTopGap * heightRatio);
+    const currentRowGap = Math.max(spriteMax + 20, baseRowGap * heightRatio);
 
     title.pos = vec2(width() / 2, 48);
     char.pos = vec2(width() / 2, rainbowBottomY());
@@ -214,14 +228,44 @@ scene('menu', () => {
 
     const firstRowY = char.pos.y + currentTopGap;
 
+    // Calculate positions with more aggressive boundary checking
+    const bottomBound = height() - 60; // 60px margin for help text
+    
+    // First pass: calculate all positions
+    let positions = [];
     items.forEach((item, i) => {
       const col = i % cols;
       const row = Math.floor(i / cols);
       const x = startX + col * paddingX;
-      const y = firstRowY + row * currentRowGap;
-      item.pos = vec2(x, y);
+      let y = firstRowY + row * currentRowGap;
+      const labelY = y + spriteMax / 2 + 24;
+      positions.push({ x, y, labelY });
+    });
+    
+    // Check if any labels exceed bounds and compress if needed
+    const maxLabelY = Math.max(...positions.map(p => p.labelY));
+    if (maxLabelY > bottomBound) {
+      const excessHeight = maxLabelY - bottomBound;
+      const adjustedFirstRowY = Math.max(char.pos.y + 20, firstRowY - excessHeight); // minimum 20px gap from char
+      
+      // Recalculate all positions with compressed layout
+      positions = [];
+      items.forEach((item, i) => {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const x = startX + col * paddingX;
+        const compressedRowGap = Math.max(spriteMax + 10, currentRowGap * 0.8); // further compress row gaps if needed
+        const y = adjustedFirstRowY + row * compressedRowGap;
+        const labelY = y + spriteMax / 2 + 24;
+        positions.push({ x, y, labelY });
+      });
+    }
+    
+    // Apply the calculated positions
+    items.forEach((item, i) => {
+      item.pos = vec2(positions[i].x, positions[i].y);
       if (item.menuLabel) {
-        item.menuLabel.pos = vec2(x, y + spriteMax / 2 + 24);
+        item.menuLabel.pos = vec2(positions[i].x, positions[i].y + spriteMax / 2 + 24);
       }
     });
   }
